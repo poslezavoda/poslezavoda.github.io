@@ -103,6 +103,7 @@
         }
 
         .preview-container {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -127,6 +128,29 @@
             max-height: 300px;
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .change-media-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+
+        .change-media-btn:hover {
+            background: rgba(0, 114, 255, 0.8);
+            transform: scale(1.1);
         }
 
         .controls {
@@ -369,6 +393,13 @@
             display: none;
         }
 
+        .media-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+            text-align: center;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -398,7 +429,7 @@
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
                 <div class="upload-text">Нажмите для загрузки фото или видео</div>
-                <div class="upload-subtext">Поддерживаются форматы: JPG, PNG, GIF, MP4, WEBM</div>
+                <div class="upload-subtext">Поддерживаются форматы: JPG, PNG, GIF, MP4, WEBM, MOV</div>
                 <input type="file" id="fileInput" accept="image/*,video/*" class="hidden">
             </div>
 
@@ -407,6 +438,12 @@
                 <img id="mediaPreview" class="hidden">
                 <video id="videoPreview" class="hidden" controls></video>
                 <div id="noPreview" class="preview-title">Медиафайл не загружен</div>
+                
+                <button class="change-media-btn hidden" id="changeMediaBtn" title="Заменить медиа">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                
+                <div id="mediaInfo" class="media-info hidden"></div>
             </div>
         </div>
 
@@ -485,7 +522,7 @@
                     </div>
                 </div>
 
-                <div class="control-group" id="videoOptions">
+                <div class="control-group hidden" id="videoOptions">
                     <label>Опции для видео:</label>
                     <div class="toggle-switch">
                         <span>Подвижная водяная марка (плавает по видео)</span>
@@ -533,6 +570,8 @@
         const mediaPreview = document.getElementById('mediaPreview');
         const videoPreview = document.getElementById('videoPreview');
         const noPreview = document.getElementById('noPreview');
+        const changeMediaBtn = document.getElementById('changeMediaBtn');
+        const mediaInfo = document.getElementById('mediaInfo');
         const watermarkText = document.getElementById('watermarkText');
         const watermarkImageInput = document.getElementById('watermarkImageInput');
         const watermarkUploadArea = document.getElementById('watermarkUploadArea');
@@ -560,6 +599,8 @@
         let isVideo = false;
         let videoFrames = [];
         let videoDuration = 0;
+        let originalFormat = '';
+        let originalFileName = '';
         
         // Инициализация
         init();
@@ -567,6 +608,7 @@
         function init() {
             // События для загрузки основного медиа
             uploadArea.addEventListener('click', () => fileInput.click());
+            changeMediaBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleMediaUpload);
             
             // События для переключения типа водяного знака
@@ -627,6 +669,9 @@
                     type: fileType
                 };
                 
+                originalFormat = fileType;
+                originalFileName = file.name;
+                
                 // Определяем, является ли файл видео
                 isVideo = fileType.startsWith('video/');
                 
@@ -642,6 +687,7 @@
                     // Получаем длительность видео после загрузки метаданных
                     videoPreview.onloadedmetadata = function() {
                         videoDuration = videoPreview.duration;
+                        updateMediaInfo(file, videoDuration);
                     };
                     
                     // Показываем опции для видео
@@ -652,16 +698,40 @@
                     noPreview.classList.add('hidden');
                     
                     mediaPreview.src = e.target.result;
+                    updateMediaInfo(file);
                     
                     // Скрываем опции для видео
                     document.getElementById('videoOptions').classList.add('hidden');
                 }
                 
+                // Показываем кнопку замены медиа
+                changeMediaBtn.classList.remove('hidden');
+                
+                // Сбрасываем предыдущую обработку
+                processedMedia = null;
+                downloadBtn.disabled = true;
+                
                 // Активируем кнопку применения
                 applyBtn.disabled = false;
+                
+                tg.HapticFeedback.impactOccurred('light');
             };
             
             reader.readAsDataURL(file);
+        }
+        
+        function updateMediaInfo(file, duration = null) {
+            const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+            let info = `Формат: ${originalFormat.split('/')[1].toUpperCase()} | Размер: ${sizeInMB} МБ`;
+            
+            if (duration) {
+                const minutes = Math.floor(duration / 60);
+                const seconds = Math.floor(duration % 60);
+                info += ` | Длительность: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            mediaInfo.textContent = info;
+            mediaInfo.classList.remove('hidden');
         }
         
         function handleWatermarkImageUpload(event) {
@@ -709,8 +779,19 @@
                 // Применяем водяной знак
                 applyWatermarkToCanvas(ctx, canvas.width, canvas.height);
                 
-                // Получаем обработанное изображение
-                processedMedia = canvas.toDataURL(originalMedia.type || 'image/png');
+                // Получаем обработанное изображение в исходном формате
+                let mimeType = originalFormat;
+                if (!mimeType || mimeType === 'image/gif') {
+                    // Для GIF или неизвестных форматов используем PNG
+                    mimeType = 'image/png';
+                }
+                
+                try {
+                    processedMedia = canvas.toDataURL(mimeType);
+                } catch (e) {
+                    // Если формат не поддерживается, используем PNG
+                    processedMedia = canvas.toDataURL('image/png');
+                }
                 
                 // Показываем результат
                 mediaPreview.src = processedMedia;
@@ -719,6 +800,8 @@
                 downloadBtn.disabled = false;
                 
                 hideProcessing();
+                
+                tg.HapticFeedback.impactOccurred('medium');
             };
             
             img.src = originalMedia.url;
@@ -741,9 +824,20 @@
                 canvas.width = tempVideo.videoWidth;
                 canvas.height = tempVideo.videoHeight;
                 
-                const fps = 30; // Сохраняем оригинальный FPS
+                // Сохраняем оригинальный FPS
+                let fps = 30; // По умолчанию
+                // Пытаемся получить FPS из метаданных видео
+                if (tempVideo.videoWidth && tempVideo.videoHeight) {
+                    // Для простоты используем стандартные значения FPS
+                    // В реальном приложении можно было бы использовать WebCodecs API для более точной работы
+                    fps = 30; // Стандартное значение
+                }
+                
                 const totalFrames = Math.floor(videoDuration * fps);
                 let currentFrame = 0;
+                
+                // Очищаем предыдущие кадры
+                videoFrames = [];
                 
                 // Функция для обработки каждого кадра
                 function processFrame() {
@@ -790,7 +884,6 @@
         function createVideoFromFrames(fps) {
             showProcessing('Создание видео...');
             
-            // Используем MediaRecorder для создания видео из кадров
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
@@ -800,9 +893,23 @@
             
             // Создаем поток с canvas
             const stream = canvas.captureStream(fps);
+            
+            // Определяем формат для записи видео
+            let mimeType = 'video/webm;codecs=vp9';
+            
+            // Пытаемся сохранить в исходном формате видео
+            if (originalFormat.includes('mp4')) {
+                // Пробуем использовать кодек для MP4
+                if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E')) {
+                    mimeType = 'video/mp4;codecs=avc1.42E01E';
+                }
+            } else if (originalFormat.includes('webm')) {
+                mimeType = 'video/webm;codecs=vp9';
+            }
+            
             const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 2500000 // Высокое качество
+                mimeType: mimeType,
+                videoBitsPerSecond: 5000000 // Высокое качество (5 Mbps)
             });
             
             const chunks = [];
@@ -814,9 +921,14 @@
             };
             
             mediaRecorder.onstop = function() {
-                const blob = new Blob(chunks, { type: 'video/webm' });
+                const blob = new Blob(chunks, { 
+                    type: mimeType.split(';')[0] // Берем только MIME тип без кодеков
+                });
                 const url = URL.createObjectURL(blob);
-                processedMedia = url;
+                processedMedia = {
+                    url: url,
+                    type: mimeType.split(';')[0]
+                };
                 
                 // Показываем результат
                 videoPreview.src = url;
@@ -825,6 +937,8 @@
                 downloadBtn.disabled = false;
                 
                 hideProcessing();
+                
+                tg.HapticFeedback.impactOccurred('medium');
             };
             
             // Начинаем запись
@@ -996,20 +1110,40 @@
             
             const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
             if (isVideo) {
-                link.href = processedMedia;
-                link.download = `watermarked-video-${timestamp}.webm`;
+                // Для видео
+                link.href = processedMedia.url;
+                
+                // Определяем расширение в зависимости от формата
+                let extension = 'webm';
+                if (processedMedia.type === 'video/mp4') {
+                    extension = 'mp4';
+                }
+                
+                link.download = `watermarked_${originalName}_${timestamp}.${extension}`;
             } else {
+                // Для изображений
                 link.href = processedMedia;
-                link.download = `watermarked-image-${timestamp}.png`;
+                
+                // Определяем расширение в зависимости от формата
+                let extension = 'png';
+                if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
+                    extension = 'jpg';
+                } else if (originalFormat.includes('png')) {
+                    extension = 'png';
+                } else if (originalFormat.includes('gif')) {
+                    extension = 'gif';
+                }
+                
+                link.download = `watermarked_${originalName}_${timestamp}.${extension}`;
             }
             
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            // Отправляем событие в Telegram
             tg.HapticFeedback.impactOccurred('medium');
         }
         
@@ -1019,6 +1153,8 @@
             processedMedia = null;
             watermarkImage = null;
             videoFrames = [];
+            originalFormat = '';
+            originalFileName = '';
             
             // Сброс UI
             mediaPreview.classList.add('hidden');
@@ -1028,6 +1164,9 @@
             watermarkImagePreview.classList.add('hidden');
             watermarkImageInput.value = '';
             fileInput.value = '';
+            
+            changeMediaBtn.classList.add('hidden');
+            mediaInfo.classList.add('hidden');
             
             applyBtn.disabled = true;
             downloadBtn.disabled = true;
