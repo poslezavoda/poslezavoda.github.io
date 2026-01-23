@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Водяные знаки</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Добавляем ffmpeg для обработки видео -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -375,6 +377,45 @@
             width: 20px;
             height: 20px;
         }
+
+        .ffmpeg-loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .quality-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .quality-btn {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            background: #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .quality-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -487,15 +528,26 @@
                 </div>
 
                 <div class="video-processing-info" style="display: none;" id="videoProcessingInfo">
-                    <strong>⚠️ Обработка видео:</strong><br>
-                    Для видео водяной знак будет наложен на первый кадр.
+                    <strong>⚙️ Настройки обработки видео:</strong><br>
                     <div class="video-option">
                         <input type="radio" id="firstFrame" name="videoOption" checked>
                         <label for="firstFrame">Только первый кадр (быстро)</label>
                     </div>
                     <div class="video-option">
-                        <input type="radio" id="allFrames" name="videoOption" disabled>
+                        <input type="radio" id="allFrames" name="videoOption">
                         <label for="allFrames">Все кадры (требует больше времени)</label>
+                    </div>
+
+                    <div id="videoQualitySection" style="display: none; margin-top: 15px;">
+                        <label>Качество видео:</label>
+                        <div class="quality-selector">
+                            <button class="quality-btn active" onclick="setVideoQuality('low')">Низкое</button>
+                            <button class="quality-btn" onclick="setVideoQuality('medium')">Среднее</button>
+                            <button class="quality-btn" onclick="setVideoQuality('high')">Высокое</button>
+                        </div>
+                        <div class="warning-box">
+                            ⚠️ Обработка всех кадров может занять время в зависимости от длины видео
+                        </div>
                     </div>
                 </div>
 
@@ -510,12 +562,18 @@
                     <button class="btn-secondary" onclick="updatePreview()" style="margin-top: 10px;">🔄 Обновить превью</button>
                 </div>
 
+                <div id="ffmpegLoading" class="ffmpeg-loading" style="display: none;">
+                    <div>⏳ Загрузка обработчика видео...</div>
+                    <div style="font-size: 12px; margin-top: 5px;">Пожалуйста, подождите</div>
+                </div>
+
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
                     <div class="progress-text">
                         Обработка: <span id="progressPercent">0%</span>
+                        <span id="currentFile" style="font-size: 12px; color: #6c757d; display: block;"></span>
                     </div>
                 </div>
 
@@ -544,6 +602,10 @@
         tg.expand();
         tg.enableClosingConfirmation();
 
+        // FFmpeg для обработки видео
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+
         // Состояние приложения
         let appState = {
             watermarks: [],
@@ -551,7 +613,9 @@
             mediaFiles: [],
             watermarkType: 'text',
             watermarkPosition: 'bottom-right',
-            watermarkOpacity: 50
+            watermarkOpacity: 50,
+            videoQuality: 'medium',
+            videoMode: 'firstFrame'
         };
 
         // Инициализация при загрузке
@@ -589,12 +653,74 @@
                 }
             });
             
+            // Настраиваем обработку видео
+            setupVideoOptions();
+            
             // Обновляем слайдер прозрачности
             updateOpacityValue();
             
             // Добавляем тестовый водяной знак по умолчанию
             addDefaultWatermark();
+            
+            // Загружаем FFmpeg заранее
+            loadFFmpeg();
         });
+
+        // Загрузка FFmpeg
+        async function loadFFmpeg() {
+            try {
+                const { createFFmpeg } = FFmpeg;
+                ffmpeg = createFFmpeg({
+                    log: true,
+                    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+                });
+                
+                document.getElementById('ffmpegLoading').style.display = 'block';
+                await ffmpeg.load();
+                ffmpegLoaded = true;
+                document.getElementById('ffmpegLoading').style.display = 'none';
+                console.log('FFmpeg загружен успешно');
+            } catch (error) {
+                console.error('Ошибка загрузки FFmpeg:', error);
+                showAlert('Не удалось загрузить обработчик видео', 'error');
+                document.getElementById('ffmpegLoading').style.display = 'none';
+            }
+        }
+
+        // Настройка опций видео
+        function setupVideoOptions() {
+            const firstFrameRadio = document.getElementById('firstFrame');
+            const allFramesRadio = document.getElementById('allFrames');
+            
+            firstFrameRadio.addEventListener('change', function() {
+                if (this.checked) {
+                    appState.videoMode = 'firstFrame';
+                    document.getElementById('videoQualitySection').style.display = 'none';
+                }
+            });
+            
+            allFramesRadio.addEventListener('change', function() {
+                if (this.checked) {
+                    appState.videoMode = 'allFrames';
+                    document.getElementById('videoQualitySection').style.display = 'block';
+                    
+                    // Если FFmpeg еще не загружен, предупредим пользователя
+                    if (!ffmpegLoaded) {
+                        showAlert('Обработчик видео загружается. Подождите немного перед началом обработки.', 'info');
+                    }
+                }
+            });
+        }
+
+        function setVideoQuality(quality) {
+            appState.videoQuality = quality;
+            
+            // Обновляем кнопки
+            document.querySelectorAll('.quality-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
 
         // Функции управления интерфейсом
         function showSection(sectionId) {
@@ -854,12 +980,11 @@
             preview.innerHTML = `<div style="margin-bottom: 10px;">Выбрано файлов: ${appState.mediaFiles.length}</div>`;
             
             appState.mediaFiles.forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const div = document.createElement('div');
-                    div.className = 'media-item';
-                    
-                    if (file.type.startsWith('image/')) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const div = document.createElement('div');
+                        div.className = 'media-item';
                         div.innerHTML = `
                             <img src="${event.target.result}" class="media-preview-img" alt="Предпросмотр">
                             <div>
@@ -870,28 +995,10 @@
                             </div>
                             <button class="action-btn" onclick="removeMediaFile(${index})" style="background: #dc3545;">Удалить</button>
                         `;
-                    } else if (file.type.startsWith('video/')) {
-                        div.innerHTML = `
-                            <div style="width: 60px; height: 60px; background: #007bff; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
-                                🎬
-                            </div>
-                            <div>
-                                <div style="font-weight: 500;">${file.name}</div>
-                                <div style="font-size: 12px; color: #6c757d;">
-                                    ${(file.size / (1024 * 1024)).toFixed(2)} МБ • Видео
-                                </div>
-                            </div>
-                            <button class="action-btn" onclick="removeMediaFile(${index})" style="background: #dc3545;">Удалить</button>
-                        `;
-                    }
-                    
-                    preview.appendChild(div);
-                };
-                
-                if (file.type.startsWith('image/')) {
+                        preview.appendChild(div);
+                    };
                     reader.readAsDataURL(file);
-                } else {
-                    // Для видео просто создаем элемент без превью
+                } else if (file.type.startsWith('video/')) {
                     const div = document.createElement('div');
                     div.className = 'media-item';
                     div.innerHTML = `
@@ -1122,6 +1229,54 @@
             ctx.globalAlpha = 1;
         }
 
+        // Функция для создания изображения водяного знака
+        async function createWatermarkImage(watermark) {
+            return new Promise((resolve, reject) => {
+                if (watermark.type === 'text') {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Размер для водяного знака
+                    const size = 512;
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    // Фон прозрачный
+                    ctx.clearRect(0, 0, size, size);
+                    
+                    // Устанавливаем прозрачность
+                    ctx.globalAlpha = watermark.opacity / 100;
+                    
+                    // Текст
+                    const fontSize = size * 0.3;
+                    ctx.font = `bold ${fontSize}px Arial`;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Тень
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetX = 4;
+                    ctx.shadowOffsetY = 4;
+                    
+                    ctx.fillText(watermark.content, size / 2, size / 2);
+                    
+                    ctx.shadowColor = 'transparent';
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(watermark.content, size / 2, size / 2);
+                    
+                    ctx.globalAlpha = 1;
+                    
+                    resolve(canvas.toDataURL('image/png'));
+                } else {
+                    // Для изображения просто возвращаем данные
+                    resolve(watermark.content);
+                }
+            });
+        }
+
         // Основная функция обработки медиа
         async function processMedia() {
             if (!appState.selectedWatermark) {
@@ -1134,10 +1289,15 @@
                 return;
             }
             
+            // Определяем режим обработки видео
+            const videoMode = document.querySelector('input[name="videoOption"]:checked').id;
+            appState.videoMode = videoMode;
+            
             // Показываем прогресс
             const progressContainer = document.getElementById('progressContainer');
             const progressFill = document.getElementById('progressFill');
             const progressPercent = document.getElementById('progressPercent');
+            const currentFile = document.getElementById('currentFile');
             const processBtn = document.getElementById('processBtn');
             
             progressContainer.style.display = 'block';
@@ -1150,16 +1310,32 @@
                 let processed = 0;
                 const total = appState.mediaFiles.length;
                 
+                // Создаем изображение водяного знака
+                const watermarkImage = await createWatermarkImage(appState.selectedWatermark);
+                
                 for (const file of appState.mediaFiles) {
                     try {
+                        currentFile.textContent = `Текущий файл: ${file.name}`;
+                        
                         if (file.type.startsWith('image/')) {
                             // Обработка изображения
                             const result = await processImageFile(file, appState.selectedWatermark);
                             downloadFile(result, `watermarked_${file.name}`);
                         } else if (file.type.startsWith('video/')) {
-                            // Обработка видео (первый кадр)
-                            const result = await processVideoFile(file, appState.selectedWatermark);
-                            downloadFile(result, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}_frame.jpg`);
+                            if (videoMode === 'firstFrame') {
+                                // Обработка только первого кадра
+                                const result = await processVideoFirstFrame(file, appState.selectedWatermark);
+                                downloadFile(result, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}_frame.jpg`);
+                            } else {
+                                // Обработка всего видео
+                                if (!ffmpegLoaded) {
+                                    showAlert('Обработчик видео еще не загружен. Пожалуйста, подождите.', 'error');
+                                    continue;
+                                }
+                                
+                                const result = await processFullVideo(file, appState.selectedWatermark, watermarkImage);
+                                downloadFile(result, `watermarked_${file.name}`);
+                            }
                         }
                         
                         processed++;
@@ -1169,7 +1345,7 @@
                         
                     } catch (error) {
                         console.error('Ошибка обработки файла:', error);
-                        showAlert(`Ошибка обработки ${file.name}`, 'error');
+                        showAlert(`Ошибка обработки ${file.name}: ${error.message}`, 'error');
                     }
                 }
                 
@@ -1177,12 +1353,13 @@
                 
             } catch (error) {
                 console.error('Критическая ошибка:', error);
-                showAlert('Произошла ошибка при обработке', 'error');
+                showAlert('Произошла ошибка при обработке: ' + error.message, 'error');
             } finally {
                 setTimeout(() => {
                     progressContainer.style.display = 'none';
                     processBtn.disabled = false;
                     processBtn.textContent = '🚀 Начать обработку';
+                    currentFile.textContent = '';
                 }, 2000);
             }
         }
@@ -1218,7 +1395,7 @@
             });
         }
 
-        async function processVideoFile(file, watermark) {
+        async function processVideoFirstFrame(file, watermark) {
             return new Promise((resolve, reject) => {
                 const video = document.createElement('video');
                 video.muted = true;
@@ -1226,7 +1403,6 @@
                 video.crossOrigin = 'anonymous';
                 
                 video.onloadeddata = function() {
-                    // Устанавливаем текущее время на первый кадр
                     video.currentTime = 0;
                 };
                 
@@ -1249,7 +1425,6 @@
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                         resolve(dataUrl);
                         
-                        // Очищаем URL
                         URL.revokeObjectURL(video.src);
                     } catch (error) {
                         reject(error);
@@ -1266,6 +1441,98 @@
             });
         }
 
+        async function processFullVideo(file, watermark, watermarkImage) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // Показываем прогресс
+                    showAlert(`Начата обработка видео: ${file.name}`, 'info');
+                    
+                    // Создаем временный canvas для водяного знака
+                    const watermarkCanvas = document.createElement('canvas');
+                    const watermarkCtx = watermarkCanvas.getContext('2d');
+                    watermarkCanvas.width = 512;
+                    watermarkCanvas.height = 512;
+                    
+                    // Загружаем водяной знак
+                    const img = new Image();
+                    img.onload = function() {
+                        watermarkCtx.drawImage(img, 0, 0, 512, 512);
+                    };
+                    img.src = watermarkImage;
+                    
+                    // Определяем качество
+                    const qualitySettings = {
+                        'low': '360p',
+                        'medium': '720p',
+                        'high': '1080p'
+                    };
+                    
+                    const targetQuality = qualitySettings[appState.videoQuality] || '720p';
+                    
+                    // Читаем файл как ArrayBuffer
+                    const reader = new FileReader();
+                    reader.onload = async function(event) {
+                        try {
+                            // Записываем файл в FFmpeg
+                            ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(event.target.result));
+                            
+                            // Определяем команды для FFmpeg
+                            const commands = [
+                                '-i', 'input.mp4',
+                                '-i', 'watermark.png',
+                                '-filter_complex', `[0][1]overlay=${getFFmpegPosition(watermark.position)}:format=auto,format=yuv420p`,
+                                '-c:a', 'copy',
+                                '-c:v', 'libx264',
+                                '-preset', 'fast',
+                                '-crf', '23',
+                                'output.mp4'
+                            ];
+                            
+                            // Записываем водяной знак как PNG
+                            const watermarkBlob = await fetch(watermarkImage).then(r => r.blob());
+                            const watermarkArrayBuffer = await watermarkBlob.arrayBuffer();
+                            ffmpeg.FS('writeFile', 'watermark.png', new Uint8Array(watermarkArrayBuffer));
+                            
+                            // Выполняем FFmpeg команду
+                            await ffmpeg.run(...commands);
+                            
+                            // Читаем результат
+                            const data = ffmpeg.FS('readFile', 'output.mp4');
+                            
+                            // Создаем Blob
+                            const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                            const url = URL.createObjectURL(blob);
+                            
+                            // Очищаем файлы из FFmpeg
+                            ffmpeg.FS('unlink', 'input.mp4');
+                            ffmpeg.FS('unlink', 'watermark.png');
+                            ffmpeg.FS('unlink', 'output.mp4');
+                            
+                            resolve(url);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        function getFFmpegPosition(position) {
+            const positions = {
+                'top-left': '10:10',
+                'top-right': 'main_w-overlay_w-10:10',
+                'center': '(main_w-overlay_w)/2:(main_h-overlay_h)/2',
+                'bottom-left': '10:main_h-overlay_h-10',
+                'bottom-right': 'main_w-overlay_w-10:main_h-overlay_h-10'
+            };
+            return positions[position] || 'main_w-overlay_w-10:main_h-overlay_h-10';
+        }
+
         function downloadFile(dataUrl, filename) {
             try {
                 const link = document.createElement('a');
@@ -1274,6 +1541,11 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                
+                // Если это blob URL, освобождаем память
+                if (dataUrl.startsWith('blob:')) {
+                    setTimeout(() => URL.revokeObjectURL(dataUrl), 1000);
+                }
                 
                 console.log('Файл скачан:', filename);
             } catch (error) {
@@ -1311,3 +1583,4 @@
     </script>
 </body>
 </html>
+
