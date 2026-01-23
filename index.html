@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Водяные знаки для фото и видео</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -468,6 +467,44 @@
             margin-top: 10px;
             font-size: 13px;
         }
+        
+        .quality-controls {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #b3d7ff;
+        }
+        
+        .quality-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .quality-slider-value {
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .ffmpeg-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        
+        .video-info-display {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -601,13 +638,52 @@
                 <div class="form-group">
                     <label>Загрузите медиафайлы:</label>
                     <label class="file-input-label" onclick="document.getElementById('mediaFiles').click()">
-                        📁 Выбрать фото или видео (до 2 файлов)
+                        📁 Выбрать фото или видео (до 5 файлов)
                     </label>
                     <input type="file" id="mediaFiles" multiple accept="image/*,video/*" style="display: none;" onchange="handleMediaFiles(this.files)">
                     <div id="mediaPreview" class="media-preview"></div>
                 </div>
 
-            
+                <div id="videoOptions" class="video-settings" style="display: none;">
+                    <h3 style="font-size: 16px; margin-bottom: 15px;">🎬 Настройки обработки видео</h3>
+                    
+                    <div class="video-option">
+                        <input type="checkbox" id="processFullVideo" checked>
+                        <label for="processFullVideo"><strong>Обработать видео полностью с максимальным качеством</strong></label>
+                    </div>
+                    
+                    <div class="quality-controls" id="qualitySettings">
+                        <div class="setting-row">
+                            <label>Целевой битрейт:</label>
+                            <select id="bitrateSelect">
+                                <option value="original">Исходный битрейт</option>
+                                <option value="5000">5 Mbps (отличное)</option>
+                                <option value="8000">8 Mbps (превосходное)</option>
+                                <option value="12000">12 Mbps (максимальное)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label>Кодек:</label>
+                            <select id="codecSelect">
+                                <option value="h264">H.264 (совместимый)</option>
+                                <option value="vp9">VP9 (качественный)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="video-info-display" id="videoInfoDisplay" style="display: none;">
+                            <!-- Информация о видео -->
+                        </div>
+                    </div>
+                    
+                    <div class="video-format-warning">
+                        ✅ Качество будет сохранено на максимально возможном уровне
+                    </div>
+                    
+                    <div class="ffmpeg-warning">
+                        ⚠️ Полная обработка видео требует мощного процессора. Для видео длиннее 1 минуты рекомендуется использовать настольные приложения.
+                    </div>
+                </div>
 
                 <div class="form-group">
                     <label>Предпросмотр:</label>
@@ -659,28 +735,6 @@
 
     <script>
         // Telegram Web App API
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        let ffmpeg = null;
-        let ffmpegLoaded = false;
-        
-        async function loadFFmpeg() {
-            if (!ffmpeg) {
-                ffmpeg = createFFmpeg({
-                    log: true,
-                    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
-                    wasmPath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm'
-                });
-            }
-            
-            if (!ffmpeg.isLoaded()) {
-                showLoading(true, 'Загрузка видеопроцессора...', 'Это займет несколько секунд');
-                await ffmpeg.load();
-                ffmpegLoaded = true;
-                showLoading(false);
-            }
-            return ffmpeg;
-        }
-        
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
@@ -697,8 +751,9 @@
             textColor: '#FFFFFF',
             fontSize: 36,
             hasTextShadow: true,
-            qualityPreset: 'original',
-            keepOriginalFPS: true
+            videoQuality: 'original',
+            videoCodec: 'h264',
+            originalVideoInfo: null
         };
 
         // Инициализация при загрузке
@@ -734,28 +789,8 @@
                     };
                     reader.readAsDataURL(file);
                 }
-
-                if (ffmpegSupported()) {
-                    console.log('FFmpeg поддерживается в этом браузере');
-                } else {
-                    console.warn('FFmpeg не поддерживается. Будет использоваться упрощенная обработка видео.');
-                    const videoOptions = document.getElementById('videoOptions');
-                    if (videoOptions) {
-                        const warning = document.createElement('div');
-                        warning.className = 'alert alert-warning';
-                        warning.innerHTML = '⚠️ Ваш браузер не поддерживает полную обработку видео. Будут использоваться скриншоты.';
-                        videoOptions.insertBefore(warning, videoOptions.firstChild);
-                    }
-                }
             });
-
-            document.getElementById('keepOriginalFPS').addEventListener('change', function(e) {
-                appState.keepOriginalFPS = e.target.checked;
-            });
-
-            document.getElementById('qualityPreset').addEventListener('change', function(e) {
-                appState.qualityPreset = e.target.value;
-            });
+            
             // Настраиваем цвет текста
             document.getElementById('textColor').addEventListener('input', function(e) {
                 appState.textColor = e.target.value;
@@ -765,6 +800,15 @@
             // Настраиваем тень текста
             document.getElementById('textShadow').addEventListener('change', function(e) {
                 appState.hasTextShadow = e.target.checked;
+            });
+            
+            // Настраиваем качество видео
+            document.getElementById('bitrateSelect').addEventListener('change', function(e) {
+                appState.videoQuality = e.target.value;
+            });
+            
+            document.getElementById('codecSelect').addEventListener('change', function(e) {
+                appState.videoCodec = e.target.value;
             });
             
             // Обновляем значения
@@ -1030,8 +1074,8 @@
         }
 
         // Работа с медиафайлами
-        function handleMediaFiles(files) {
-            const maxFiles = 2; // Уменьшено для стабильности
+        async function handleMediaFiles(files) {
+            const maxFiles = 5;
             if (files.length > maxFiles) {
                 showAlert(`Максимальное количество файлов: ${maxFiles}. Будут обработаны первые ${maxFiles} файлов.`, 'info');
                 files = Array.from(files).slice(0, maxFiles);
@@ -1043,9 +1087,52 @@
             const hasVideo = appState.mediaFiles.some(file => file.type.startsWith('video/'));
             document.getElementById('videoOptions').style.display = hasVideo ? 'block' : 'none';
             
+            // Получаем информацию о видео
+            if (hasVideo) {
+                const videoFile = appState.mediaFiles.find(f => f.type.startsWith('video/'));
+                if (videoFile) {
+                    await getVideoInfo(videoFile);
+                }
+            }
+            
             if (files.length > 0 && appState.selectedWatermark) {
                 updatePreview();
             }
+        }
+
+        async function getVideoInfo(videoFile) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                
+                video.onloadedmetadata = () => {
+                    const info = {
+                        duration: video.duration,
+                        width: video.videoWidth,
+                        height: video.videoHeight,
+                        size: (videoFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+                        bitrate: Math.round((videoFile.size * 8) / video.duration / 1000) + ' kbps'
+                    };
+                    
+                    appState.originalVideoInfo = info;
+                    
+                    // Показываем информацию о видео
+                    const infoDisplay = document.getElementById('videoInfoDisplay');
+                    infoDisplay.style.display = 'block';
+                    infoDisplay.innerHTML = `
+                        <strong>Информация о видео:</strong><br>
+                        📏 Разрешение: ${info.width}×${info.height}<br>
+                        ⏱️ Длительность: ${Math.round(info.duration)} сек<br>
+                        📊 Битрейт: ${info.bitrate}<br>
+                        💾 Размер файла: ${info.size}
+                    `;
+                    
+                    URL.revokeObjectURL(video.src);
+                    resolve(info);
+                };
+                
+                video.src = URL.createObjectURL(videoFile);
+            });
         }
 
         function updateMediaPreview() {
@@ -1211,6 +1298,7 @@
             }
             
             // Устанавливаем прозрачность
+            ctx.save();
             ctx.globalAlpha = (watermark.opacity || 70) / 100;
             
             if (watermark.type === 'text') {
@@ -1267,8 +1355,7 @@
                 img.src = watermark.content;
             }
             
-            // Восстанавливаем прозрачность
-            ctx.globalAlpha = 1;
+            ctx.restore();
         }
 
         // Основная функция обработки
@@ -1281,259 +1368,6 @@
             if (appState.mediaFiles.length === 0) {
                 showAlert('Выберите файлы для обработки', 'error');
                 return;
-            }
-            
-            const processBtn = document.getElementById('processBtn');
-            processBtn.disabled = true;
-            processBtn.textContent = '⏳ Обработка...';
-            
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            const progressPercent = document.getElementById('progressPercent');
-            const progressDetails = document.getElementById('progressDetails');
-            
-            progressContainer.style.display = 'block';
-            progressFill.style.width = '0%';
-            progressPercent.textContent = '0%';
-            progressDetails.textContent = '';
-            
-            let processed = 0;
-            const total = appState.mediaFiles.length;
-            
-            for (const file of appState.mediaFiles) {
-                try {
-                    progressDetails.textContent = `Обработка: ${file.name} (${processed+1}/${total})`;
-                    
-                    if (file.type.startsWith('image/')) {
-                        await processImage(file);
-                    } else if (file.type.startsWith('video/')) {
-                        const processFullVideo = document.getElementById('processFullVideo').checked;
-                        if (processFullVideo) {
-                            await processVideoWithFFmpeg(file);
-                        } else {
-                            await processVideoScreenshot(file);
-                        }
-                    }
-                    
-                    processed++;
-                    const progress = (processed / total) * 100;
-                    progressFill.style.width = progress + '%';
-                    progressPercent.textContent = Math.round(progress) + '%';
-                    
-                } catch (error) {
-                    console.error('Ошибка обработки файла:', error);
-                    showAlert(`Ошибка обработки ${file.name}: ${error.message}`, 'error');
-                }
-            }
-            
-            progressDetails.textContent = 'Завершено!';
-            setTimeout(() => {
-                progressContainer.style.display = 'none';
-            }, 2000);
-            
-            processBtn.disabled = false;
-            processBtn.textContent = '🚀 Начать обработку';
-            showAlert(`Обработка завершена! Обработано файлов: ${processed}/${total}`, 'success');
-        }
-
-        async function processImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
-                        applyWatermarkToCanvas(ctx, img.width, img.height, appState.selectedWatermark);
-                        
-                        // Определяем формат сохранения
-                        const format = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
-                        const dataUrl = canvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.9 : 1.0);
-                        downloadFile(dataUrl, `watermarked_${file.name}`);
-                        resolve();
-                    };
-                    img.onerror = reject;
-                    img.src = event.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        async function processVideoScreenshot(file) {
-            return new Promise((resolve, reject) => {
-                showLoading(true, `Обработка видео: ${file.name}`, 'Создаем скриншот...');
-                
-                const video = document.createElement('video');
-                video.muted = true;
-                video.playsInline = true;
-                
-                video.onloadeddata = function() {
-                    // Берем кадр из середины видео
-                    video.currentTime = Math.min(video.duration / 2, 5);
-                };
-                
-                video.onseeked = function() {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        ctx.drawImage(video, 0, 0);
-                        applyWatermarkToCanvas(ctx, video.videoWidth, video.videoHeight, appState.selectedWatermark);
-                        
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                        downloadFile(dataUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.jpg`);
-                        
-                        URL.revokeObjectURL(video.src);
-                        showLoading(false);
-                        resolve();
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                video.onerror = function() {
-                    reject(new Error('Не удалось загрузить видео'));
-                    URL.revokeObjectURL(video.src);
-                };
-                
-                video.src = URL.createObjectURL(file);
-                video.load();
-            });
-        }
-
-        async function processVideoWithFFmpeg(file) {
-            showLoading(true, `Обработка видео: ${file.name}`, 'Загрузка видеопроцессора...');
-            
-            try {
-                // Загружаем FFmpeg если еще не загружен
-                await loadFFmpeg();
-                
-                showLoading(true, `Обработка видео: ${file.name}`, 'Считывание метаданных...');
-                
-                // Получаем информацию о видео через временный элемент
-                const videoInfo = await getVideoInfo(file);
-                console.log('Информация о видео:', videoInfo);
-                
-                // Создаем временный canvas для водяного знака
-                const watermarkCanvas = document.createElement('canvas');
-                const watermarkCtx = watermarkCanvas.getContext('2d');
-                watermarkCanvas.width = videoInfo.width;
-                watermarkCanvas.height = videoInfo.height;
-                
-                // Рисуем водяной знак на canvas
-                applyWatermarkToCanvas(watermarkCtx, videoInfo.width, videoInfo.height, appState.selectedWatermark);
-                
-                // Конвертируем canvas в PNG для использования в FFmpeg
-                const watermarkDataURL = watermarkCanvas.toDataURL('image/png');
-                const watermarkBlob = dataURLtoBlob(watermarkDataURL);
-                
-                showLoading(true, `Обработка видео: ${file.name}`, 'Подготовка файлов...');
-                
-                // Записываем файлы в виртуальную файловую систему FFmpeg
-                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-                ffmpeg.FS('writeFile', 'watermark.png', await fetchFile(watermarkBlob));
-                
-                // Определяем параметры кодирования на основе исходного видео
-                const bitrate = Math.min(50000000, Math.max(2000000, (file.size * 8) / videoInfo.duration));
-                const targetBitrate = Math.round(bitrate / 1000) + 'k';
-                
-                // Строим команду FFmpeg для сохранения качества
-                const command = [
-                    '-i', 'input.mp4',
-                    '-i', 'watermark.png',
-                    '-filter_complex', `[0:v][1:v]overlay=${getFFmpegPosition(videoInfo.width, videoInfo.height, appState.selectedWatermark)}:format=auto,format=yuv420p`,
-                    '-c:v', 'libx264',
-                    '-preset', 'medium', // Измените на 'ultrafast' для скорости или 'slow' для качества
-                    '-crf', '18', // От 0 (без потерь) до 51 (худшее качество). 18-23 - хороший баланс
-                    '-b:v', targetBitrate,
-                    '-maxrate', targetBitrate,
-                    '-bufsize', Math.round(parseInt(targetBitrate) * 2) + 'k',
-                    '-r', videoInfo.fps.toString(), // Сохраняем оригинальный FPS
-                    '-c:a', 'copy', // Копируем аудио без перекодировки
-                    '-movflags', '+faststart',
-                    '-y', // Перезаписывать выходной файл
-                    'output.mp4'
-                ];
-                
-                console.log('Запускаем FFmpeg с командой:', command);
-                
-                // Запускаем FFmpeg
-                await ffmpeg.run(...command);
-                
-                showLoading(true, `Обработка видео: ${file.name}`, 'Сохранение результата...');
-                
-                // Читаем результат
-                const data = ffmpeg.FS('readFile', 'output.mp4');
-                
-                // Создаем blob для скачивания
-                const resultBlob = new Blob([data.buffer], { type: 'video/mp4' });
-                const resultUrl = URL.createObjectURL(resultBlob);
-                
-                // Скачиваем файл
-                downloadFile(resultUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.mp4`);
-                
-                // Очищаем память
-                ffmpeg.FS('unlink', 'input.mp4');
-                ffmpeg.FS('unlink', 'watermark.png');
-                ffmpeg.FS('unlink', 'output.mp4');
-                
-                showLoading(false);
-                return true;
-                
-            } catch (error) {
-                console.error('FFmpeg ошибка:', error);
-                showLoading(false);
-                
-                // Fallback на старый метод если FFmpeg не сработал
-                showAlert('Используем упрощенную обработку...', 'warning');
-                try {
-                    await processVideoScreenshot(file);
-                    return true;
-                } catch (screenshotError) {
-                    throw new Error(`Не удалось обработать видео: ${error.message}`);
-                }
-            }
-        }
-
-
-function dataURLtoBlob(dataURL) {
-            const arr = dataURL.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            
-            while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            
-            return new Blob([u8arr], { type: mime });
-        }
-
-        // Обновляем основную функцию обработки
-        async function processAllMedia() {
-            if (!appState.selectedWatermark) {
-                showAlert('Выберите водяной знак', 'error');
-                return;
-            }
-            
-            if (appState.mediaFiles.length === 0) {
-                showAlert('Выберите файлы для обработки', 'error');
-                return;
-            }
-            
-            // Предупреждение о времени обработки для видео
-            const hasVideo = appState.mediaFiles.some(f => f.type.startsWith('video/'));
-            if (hasVideo) {
-                const useFFmpeg = confirm('Для сохранения качества видео потребуется дополнительная загрузка процессора (около 10-30 МБ). Продолжить?');
-                if (!useFFmpeg) return;
             }
             
             const processBtn = document.getElementById('processBtn');
@@ -1573,14 +1407,14 @@ function dataURLtoBlob(dataURL) {
                 }
             }
             
-            // Обрабатываем видео с использованием FFmpeg
+            // Обрабатываем видео
             for (const file of videos) {
                 try {
                     progressDetails.textContent = `Видео: ${file.name} (${processed+1}/${total})`;
                     
                     const useFullProcessing = document.getElementById('processFullVideo').checked;
-                    if (useFullProcessing && ffmpegSupported()) {
-                        await processVideoWithFFmpeg(file);
+                    if (useFullProcessing) {
+                        await processVideoHighQuality(file);
                     } else {
                         await processVideoScreenshot(file);
                     }
@@ -1606,125 +1440,274 @@ function dataURLtoBlob(dataURL) {
             showAlert(`Обработка завершена! Обработано файлов: ${processed}/${total}`, 'success');
         }
 
-        function ffmpegSupported() {
-            return typeof WebAssembly !== 'undefined' && typeof SharedArrayBuffer !== 'undefined';
-        }
-
-        async function detectVideoFPS(video) {
-    return new Promise((resolve) => {
-        let fps = 30;
-        const startTime = performance.now();
-        let frameCount = 0;
-        
-        const checkFPS = () => {
-            frameCount++;
-            const elapsed = performance.now() - startTime;
-            
-            if (elapsed >= 500) { // Считаем за 0.5 секунды
-                fps = Math.round((frameCount * 1000) / elapsed);
-                resolve(Math.max(24, Math.min(fps, 120))); // Ограничиваем разумными значениями
-                return;
-            }
-            
-            requestAnimationFrame(checkFPS);
-        };
-        
-        video.play().then(() => {
-            checkFPS();
-            setTimeout(() => {
-                video.pause();
-            }, 600);
-        }).catch(() => {
-            resolve(30);
-        });
-    });
-}
-
-function getFFmpegPosition(videoWidth, videoHeight, watermark) {
-            const sizePercent = parseInt(watermark.size) / 100;
-            const watermarkWidth = videoWidth * sizePercent;
-            const watermarkHeight = watermarkWidth;
-            const margin = watermark.margin || 20;
-            
-            let x, y;
-            
-            switch (watermark.position) {
-                case 'top-left':
-                    x = `W*${margin/1000}:H*${margin/1000}`;
-                    break;
-                case 'top-center':
-                    x = `(W-w)/2`;
-                    y = `H*${margin/1000}`;
-                    break;
-                case 'top-right':
-                    x = `W-w-${margin}`;
-                    y = `${margin}`;
-                    break;
-                case 'center-left':
-                    x = `${margin}`;
-                    y = `(H-h)/2`;
-                    break;
-                case 'center':
-                    x = `(W-w)/2`;
-                    y = `(H-h)/2`;
-                    break;
-                case 'center-right':
-                    x = `W-w-${margin}`;
-                    y = `(H-h)/2`;
-                    break;
-                case 'bottom-left':
-                    x = `${margin}`;
-                    y = `H-h-${margin}`;
-                    break;
-                case 'bottom-center':
-                    x = `(W-w)/2`;
-                    y = `H-h-${margin}`;
-                    break;
-                case 'bottom-right':
-                default:
-                    x = `W-w-${margin}`;
-                    y = `H-h-${margin}`;
-                    break;
-            }
-            
-            return `${x}:${y}:enable='between(t,0,1e6)'`;
-        }
-
-        async function getVideoInfo(file) {
+        async function processImage(file) {
             return new Promise((resolve, reject) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
+                showLoading(true, `Обработка изображения: ${file.name}`, 'Загрузка...');
                 
-                video.onloadedmetadata = () => {
-                    const info = {
-                        width: video.videoWidth,
-                        height: video.videoHeight,
-                        duration: video.duration,
-                        fps: 30 // По умолчанию
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        // Используем высокое качество для изображений
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        
+                        ctx.drawImage(img, 0, 0);
+                        applyWatermarkToCanvas(ctx, img.width, img.height, appState.selectedWatermark);
+                        
+                        // Определяем формат сохранения с максимальным качеством
+                        const format = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+                        const quality = format === 'jpeg' ? 1.0 : 1.0; // Максимальное качество
+                        const dataUrl = canvas.toDataURL(`image/${format}`, quality);
+                        
+                        downloadFile(dataUrl, `watermarked_${file.name}`);
+                        
+                        showLoading(false);
+                        resolve();
                     };
-                    
-                    // Пытаемся определить FPS
-                    video.currentTime = 0.1;
-                    video.onseeked = () => {
-                        const start = performance.now();
-                        video.currentTime = 0.2;
-                        video.onseeked = () => {
-                            const end = performance.now();
-                            info.fps = Math.round(1000 / (end - start));
-                            if (info.fps < 15 || info.fps > 240) info.fps = 30;
-                            
-                            URL.revokeObjectURL(video.src);
-                            resolve(info);
-                        };
-                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function processVideoScreenshot(file) {
+            return new Promise((resolve, reject) => {
+                showLoading(true, `Обработка видео: ${file.name}`, 'Создаем скриншот...');
+                
+                const video = document.createElement('video');
+                video.muted = true;
+                video.playsInline = true;
+                
+                video.onloadeddata = function() {
+                    // Берем кадр из середины видео
+                    video.currentTime = Math.min(video.duration / 2, 5);
                 };
                 
-                video.onerror = () => {
+                video.onseeked = function() {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        
+                        // Используем высокое качество
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        
+                        ctx.drawImage(video, 0, 0);
+                        applyWatermarkToCanvas(ctx, video.videoWidth, video.videoHeight, appState.selectedWatermark);
+                        
+                        // Сохраняем с максимальным качеством
+                        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+                        downloadFile(dataUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.jpg`);
+                        
+                        URL.revokeObjectURL(video.src);
+                        showLoading(false);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                video.onerror = function() {
+                    reject(new Error('Не удалось загрузить видео'));
                     URL.revokeObjectURL(video.src);
-                    reject(new Error('Не удалось прочитать видео'));
                 };
                 
                 video.src = URL.createObjectURL(file);
+                video.load();
+            });
+        }
+
+        async function processVideoHighQuality(file) {
+            return new Promise(async (resolve, reject) => {
+                showLoading(true, `Обработка видео: ${file.name}`, 'Подготовка к обработке...');
+                
+                try {
+                    // Получаем информацию о видео
+                    const videoInfo = await getVideoInfo(file);
+                    
+                    showLoading(true, `Обработка видео: ${file.name}`, 'Создание водяного знака...');
+                    
+                    // Создаем canvas для водяного знака
+                    const watermarkCanvas = document.createElement('canvas');
+                    const watermarkCtx = watermarkCanvas.getContext('2d');
+                    watermarkCanvas.width = videoInfo.width;
+                    watermarkCanvas.height = videoInfo.height;
+                    
+                    // Рисуем водяной знак
+                    applyWatermarkToCanvas(watermarkCtx, videoInfo.width, videoInfo.height, appState.selectedWatermark);
+                    
+                    // Создаем основной canvas
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = videoInfo.width;
+                    canvas.height = videoInfo.height;
+                    
+                    // Устанавливаем высокое качество
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    // Создаем видеопоток с высоким битрейтом
+                    const stream = canvas.captureStream(30); // Используем 30 FPS как стандарт
+                    
+                    // Определяем настройки качества
+                    let bitrate = 5000000; // 5 Mbps по умолчанию
+                    
+                    if (appState.videoQuality === 'original' && appState.originalVideoInfo) {
+                        // Пытаемся вычислить оригинальный битрейт
+                        const originalBitrate = parseInt(appState.originalVideoInfo.bitrate) * 1000;
+                        if (originalBitrate > 1000000) {
+                            bitrate = Math.min(20000000, originalBitrate); // Ограничиваем 20 Mbps
+                        }
+                    } else if (appState.videoQuality !== 'original') {
+                        bitrate = parseInt(appState.videoQuality) * 1000;
+                    }
+                    
+                    // Выбираем кодек
+                    let mimeType;
+                    if (appState.videoCodec === 'vp9' && MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
+                        mimeType = 'video/webm; codecs=vp9';
+                    } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                        mimeType = 'video/webm';
+                    } else {
+                        mimeType = 'video/mp4';
+                    }
+                    
+                    console.log(`Используем настройки: битрейт=${bitrate}, кодек=${mimeType}`);
+                    
+                    const mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: mimeType,
+                        videoBitsPerSecond: bitrate
+                    });
+                    
+                    const chunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            chunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: mimeType });
+                        const url = URL.createObjectURL(blob);
+                        
+                        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                        downloadFile(url, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.${extension}`);
+                        showLoading(false);
+                        resolve();
+                    };
+                    
+                    mediaRecorder.onerror = (error) => {
+                        reject(new Error('Ошибка записи видео: ' + error));
+                    };
+                    
+                    // Начинаем запись
+                    mediaRecorder.start(1000);
+                    
+                    // Создаем видео элемент для обработки кадров
+                    const video = document.createElement('video');
+                    video.muted = true;
+                    video.playsInline = true;
+                    
+                    await new Promise((resolveLoad) => {
+                        video.onloadeddata = resolveLoad;
+                        video.src = URL.createObjectURL(file);
+                    });
+                    
+                    // Определяем FPS
+                    let fps = 30;
+                    try {
+                        // Пытаемся определить FPS видео
+                        await new Promise((resolve) => {
+                            video.currentTime = 0.1;
+                            video.onseeked = () => {
+                                const start = performance.now();
+                                video.currentTime = 0.2;
+                                video.onseeked = () => {
+                                    const end = performance.now();
+                                    fps = Math.round(1000 / (end - start));
+                                    if (fps < 15 || fps > 240) fps = 30;
+                                    resolve();
+                                };
+                            };
+                        });
+                    } catch (e) {
+                        console.warn('Не удалось определить FPS, используем 30', e);
+                    }
+                    
+                    const duration = video.duration;
+                    let currentTime = 0;
+                    const timeStep = 1 / fps;
+                    
+                    // Функция обработки следующего кадра
+                    const processNextFrame = () => {
+                        if (currentTime >= duration || mediaRecorder.state !== 'recording') {
+                            mediaRecorder.stop();
+                            URL.revokeObjectURL(video.src);
+                            return;
+                        }
+                        
+                        // Обновляем прогресс
+                        const progressPercent = Math.min(100, (currentTime / duration) * 100);
+                        document.getElementById('videoProgress').textContent = 
+                            `Обработка: ${progressPercent.toFixed(1)}% (${currentTime.toFixed(1)}/${duration.toFixed(1)} сек)`;
+                        
+                        video.currentTime = currentTime;
+                        
+                        video.onseeked = () => {
+                            // Очищаем canvas
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Рисуем кадр видео
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // Накладываем водяной знак
+                            ctx.globalAlpha = (appState.selectedWatermark.opacity || 70) / 100;
+                            ctx.drawImage(watermarkCanvas, 0, 0);
+                            ctx.globalAlpha = 1;
+                            
+                            // Переходим к следующему кадру
+                            currentTime += timeStep;
+                            
+                            // Используем setTimeout для контроля скорости
+                            setTimeout(processNextFrame, 0);
+                        };
+                        
+                        video.onerror = () => {
+                            // Пропускаем проблемный кадр
+                            currentTime += timeStep;
+                            setTimeout(processNextFrame, 0);
+                        };
+                    };
+                    
+                    // Запускаем обработку
+                    processNextFrame();
+                    
+                } catch (error) {
+                    console.error('Ошибка обработки видео:', error);
+                    showLoading(false);
+                    
+                    // Fallback на скриншот
+                    showAlert('Не удалось обработать видео полностью. Создаем скриншот...', 'warning');
+                    try {
+                        await processVideoScreenshot(file);
+                        resolve();
+                    } catch (screenshotError) {
+                        reject(screenshotError);
+                    }
+                }
             });
         }
 
