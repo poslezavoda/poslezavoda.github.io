@@ -171,7 +171,7 @@
             color: #ddd;
         }
 
-        select, input[type="text"], input[type="range"] {
+        select, input[type="text"], input[type="range"], input[type="number"] {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
@@ -182,7 +182,7 @@
             transition: all 0.3s;
         }
 
-        select:focus, input[type="text"]:focus {
+        select:focus, input[type="text"]:focus, input[type="number"]:focus {
             border-color: #0072ff;
             box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.3);
         }
@@ -300,6 +300,25 @@
             transform: translateX(30px);
         }
 
+        .motion-settings {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .motion-settings.active {
+            display: block;
+        }
+
+        .motion-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
         .button-group {
             display: flex;
             gap: 15px;
@@ -411,6 +430,10 @@
             
             .button-group {
                 flex-direction: column;
+            }
+            
+            .motion-controls {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -525,11 +548,34 @@
                 <div class="control-group hidden" id="videoOptions">
                     <label>Опции для видео:</label>
                     <div class="toggle-switch">
-                        <span>Подвижная водяная марка (плавает по видео)</span>
+                        <span>Подвижная водяная марка (плавное движение)</span>
                         <label class="switch">
                             <input type="checkbox" id="movingWatermark">
                             <span class="slider"></span>
                         </label>
+                    </div>
+                    
+                    <div class="motion-settings" id="motionSettings">
+                        <div class="motion-controls">
+                            <div>
+                                <label for="speedSlider">Скорость движения: <span id="speedValue">5</span></label>
+                                <input type="range" id="speedSlider" min="1" max="20" value="5">
+                                <div class="range-value">
+                                    <span>Медленно</span>
+                                    <span>Быстро</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="motionType">Тип движения:</label>
+                                <select id="motionType">
+                                    <option value="bounce">Отскок от краев</option>
+                                    <option value="circular">Круговое</option>
+                                    <option value="horizontal">Горизонтальное</option>
+                                    <option value="vertical">Вертикальное</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -580,6 +626,10 @@
         const opacityValue = document.getElementById('opacityValue');
         const positionButtons = document.querySelectorAll('.position-btn');
         const movingWatermark = document.getElementById('movingWatermark');
+        const motionSettings = document.getElementById('motionSettings');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const motionType = document.getElementById('motionType');
         const applyBtn = document.getElementById('applyBtn');
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -601,6 +651,20 @@
         let videoDuration = 0;
         let originalFormat = '';
         let originalFileName = '';
+        
+        // Переменные для плавного движения водяного знака
+        let watermarkState = {
+            x: 0,
+            y: 0,
+            dx: 2,
+            dy: 1.5,
+            width: 0,
+            height: 0,
+            angle: 0,
+            radius: 50,
+            centerX: 0,
+            centerY: 0
+        };
         
         // Инициализация
         init();
@@ -631,6 +695,19 @@
                     btn.classList.add('active');
                     position = btn.dataset.position;
                 });
+            });
+            
+            // События для настройки движения
+            movingWatermark.addEventListener('change', () => {
+                if (movingWatermark.checked) {
+                    motionSettings.classList.add('active');
+                } else {
+                    motionSettings.classList.remove('active');
+                }
+            });
+            
+            speedSlider.addEventListener('input', () => {
+                speedValue.textContent = speedSlider.value;
             });
             
             // События для кнопок действий
@@ -702,6 +779,7 @@
                     
                     // Скрываем опции для видео
                     document.getElementById('videoOptions').classList.add('hidden');
+                    motionSettings.classList.remove('active');
                 }
                 
                 // Показываем кнопку замены медиа
@@ -777,7 +855,7 @@
                 ctx.drawImage(img, 0, 0);
                 
                 // Применяем водяной знак
-                applyWatermarkToCanvas(ctx, canvas.width, canvas.height);
+                applyWatermarkToCanvas(ctx, canvas.width, canvas.height, 0, 1);
                 
                 // Получаем обработанное изображение в исходном формате
                 let mimeType = originalFormat;
@@ -826,15 +904,13 @@
                 
                 // Сохраняем оригинальный FPS
                 let fps = 30; // По умолчанию
-                // Пытаемся получить FPS из метаданных видео
-                if (tempVideo.videoWidth && tempVideo.videoHeight) {
-                    // Для простоты используем стандартные значения FPS
-                    // В реальном приложении можно было бы использовать WebCodecs API для более точной работы
-                    fps = 30; // Стандартное значение
-                }
-                
                 const totalFrames = Math.floor(videoDuration * fps);
                 let currentFrame = 0;
+                
+                // Инициализируем состояние водяного знака для движения
+                if (movingWatermark.checked) {
+                    initializeWatermarkState(canvas.width, canvas.height);
+                }
                 
                 // Очищаем предыдущие кадры
                 videoFrames = [];
@@ -854,6 +930,11 @@
                         
                         // Применяем водяной знак
                         applyWatermarkToCanvas(ctx, canvas.width, canvas.height, currentFrame, totalFrames);
+                        
+                        // Если включено движение, обновляем позицию водяного знака
+                        if (movingWatermark.checked) {
+                            updateWatermarkPosition(canvas.width, canvas.height, currentFrame, totalFrames);
+                        }
                         
                         // Сохраняем кадр
                         videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
@@ -879,6 +960,232 @@
             };
             
             tempVideo.load();
+        }
+        
+        function initializeWatermarkState(videoWidth, videoHeight) {
+            // Вычисляем размер водяного знака
+            let watermarkWidth, watermarkHeight;
+            
+            if (watermarkType === 'text' && watermarkText.value.trim()) {
+                // Для текста создаем временный canvas для измерения
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                const fontSize = Math.min(videoWidth, videoHeight) * 0.05;
+                
+                tempCtx.font = `bold ${fontSize}px Arial`;
+                const text = watermarkText.value.trim();
+                const textMetrics = tempCtx.measureText(text);
+                
+                watermarkWidth = textMetrics.width + fontSize; // Ширина текста + padding
+                watermarkHeight = fontSize * 2; // Высота шрифта * 2
+            } else if (watermarkType === 'image' && watermarkImage) {
+                watermarkWidth = videoWidth * 0.2;
+                watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+            } else {
+                // Значения по умолчанию
+                watermarkWidth = videoWidth * 0.2;
+                watermarkHeight = videoHeight * 0.1;
+            }
+            
+            // Устанавливаем начальное состояние водяного знака
+            watermarkState.width = watermarkWidth;
+            watermarkState.height = watermarkHeight;
+            
+            // Устанавливаем начальную позицию в зависимости от выбранного положения
+            switch(position) {
+                case 'top-left':
+                    watermarkState.x = 10;
+                    watermarkState.y = 10;
+                    break;
+                case 'top-center':
+                    watermarkState.x = (videoWidth - watermarkWidth) / 2;
+                    watermarkState.y = 10;
+                    break;
+                case 'top-right':
+                    watermarkState.x = videoWidth - watermarkWidth - 10;
+                    watermarkState.y = 10;
+                    break;
+                case 'center-left':
+                    watermarkState.x = 10;
+                    watermarkState.y = (videoHeight - watermarkHeight) / 2;
+                    break;
+                case 'center':
+                    watermarkState.x = (videoWidth - watermarkWidth) / 2;
+                    watermarkState.y = (videoHeight - watermarkHeight) / 2;
+                    break;
+                case 'center-right':
+                    watermarkState.x = videoWidth - watermarkWidth - 10;
+                    watermarkState.y = (videoHeight - watermarkHeight) / 2;
+                    break;
+                case 'bottom-left':
+                    watermarkState.x = 10;
+                    watermarkState.y = videoHeight - watermarkHeight - 10;
+                    break;
+                case 'bottom-center':
+                    watermarkState.x = (videoWidth - watermarkWidth) / 2;
+                    watermarkState.y = videoHeight - watermarkHeight - 10;
+                    break;
+                case 'bottom-right':
+                    watermarkState.x = videoWidth - watermarkWidth - 10;
+                    watermarkState.y = videoHeight - watermarkHeight - 10;
+                    break;
+            }
+            
+            // Начальная скорость зависит от настроек скорости
+            const speed = parseInt(speedSlider.value);
+            watermarkState.dx = speed / 2;
+            watermarkState.dy = speed / 3;
+            
+            // Для кругового движения
+            watermarkState.centerX = videoWidth / 2;
+            watermarkState.centerY = videoHeight / 2;
+            watermarkState.radius = Math.min(videoWidth, videoHeight) * 0.3;
+            watermarkState.angle = 0;
+        }
+        
+        function updateWatermarkPosition(videoWidth, videoHeight, currentFrame, totalFrames) {
+            const speed = parseInt(speedSlider.value) / 10;
+            const motion = motionType.value;
+            
+            switch(motion) {
+                case 'bounce':
+                    // Движение с отскоком от краев
+                    watermarkState.x += watermarkState.dx * speed;
+                    watermarkState.y += watermarkState.dy * speed;
+                    
+                    // Проверка столкновения с границами
+                    if (watermarkState.x <= 0) {
+                        watermarkState.x = 0;
+                        watermarkState.dx = Math.abs(watermarkState.dx);
+                    } else if (watermarkState.x + watermarkState.width >= videoWidth) {
+                        watermarkState.x = videoWidth - watermarkState.width;
+                        watermarkState.dx = -Math.abs(watermarkState.dx);
+                    }
+                    
+                    if (watermarkState.y <= 0) {
+                        watermarkState.y = 0;
+                        watermarkState.dy = Math.abs(watermarkState.dy);
+                    } else if (watermarkState.y + watermarkState.height >= videoHeight) {
+                        watermarkState.y = videoHeight - watermarkState.height;
+                        watermarkState.dy = -Math.abs(watermarkState.dy);
+                    }
+                    break;
+                    
+                case 'circular':
+                    // Круговое движение
+                    watermarkState.angle += speed * 0.05;
+                    watermarkState.x = watermarkState.centerX + Math.cos(watermarkState.angle) * watermarkState.radius - watermarkState.width / 2;
+                    watermarkState.y = watermarkState.centerY + Math.sin(watermarkState.angle) * watermarkState.radius - watermarkState.height / 2;
+                    break;
+                    
+                case 'horizontal':
+                    // Горизонтальное движение
+                    watermarkState.x += watermarkState.dx * speed;
+                    
+                    if (watermarkState.x <= 0) {
+                        watermarkState.x = 0;
+                        watermarkState.dx = Math.abs(watermarkState.dx);
+                    } else if (watermarkState.x + watermarkState.width >= videoWidth) {
+                        watermarkState.x = videoWidth - watermarkState.width;
+                        watermarkState.dx = -Math.abs(watermarkState.dx);
+                    }
+                    break;
+                    
+                case 'vertical':
+                    // Вертикальное движение
+                    watermarkState.y += watermarkState.dy * speed;
+                    
+                    if (watermarkState.y <= 0) {
+                        watermarkState.y = 0;
+                        watermarkState.dy = Math.abs(watermarkState.dy);
+                    } else if (watermarkState.y + watermarkState.height >= videoHeight) {
+                        watermarkState.y = videoHeight - watermarkState.height;
+                        watermarkState.dy = -Math.abs(watermarkState.dy);
+                    }
+                    break;
+            }
+        }
+        
+        function applyWatermarkToCanvas(ctx, width, height, frameIndex = 0, totalFrames = 1) {
+            const opacity = parseInt(opacitySlider.value) / 100;
+            
+            // Если включена подвижная водяная марка для видео, используем текущие координаты
+            let x, y;
+            if (isVideo && movingWatermark.checked && totalFrames > 1) {
+                x = watermarkState.x;
+                y = watermarkState.y;
+            } else {
+                // Иначе используем выбранную позицию
+                switch(position) {
+                    case 'top-left':
+                        x = 10;
+                        y = 10;
+                        break;
+                    case 'top-center':
+                        x = (width - (watermarkType === 'text' ? 100 : width * 0.2)) / 2;
+                        y = 10;
+                        break;
+                    case 'top-right':
+                        x = width - (watermarkType === 'text' ? 110 : width * 0.2 + 10);
+                        y = 10;
+                        break;
+                    case 'center-left':
+                        x = 10;
+                        y = (height - (watermarkType === 'text' ? 50 : height * 0.1)) / 2;
+                        break;
+                    case 'center':
+                        x = (width - (watermarkType === 'text' ? 100 : width * 0.2)) / 2;
+                        y = (height - (watermarkType === 'text' ? 50 : height * 0.1)) / 2;
+                        break;
+                    case 'center-right':
+                        x = width - (watermarkType === 'text' ? 110 : width * 0.2 + 10);
+                        y = (height - (watermarkType === 'text' ? 50 : height * 0.1)) / 2;
+                        break;
+                    case 'bottom-left':
+                        x = 10;
+                        y = height - (watermarkType === 'text' ? 60 : height * 0.1 + 10);
+                        break;
+                    case 'bottom-center':
+                        x = (width - (watermarkType === 'text' ? 100 : width * 0.2)) / 2;
+                        y = height - (watermarkType === 'text' ? 60 : height * 0.1 + 10);
+                        break;
+                    case 'bottom-right':
+                        x = width - (watermarkType === 'text' ? 110 : width * 0.2 + 10);
+                        y = height - (watermarkType === 'text' ? 60 : height * 0.1 + 10);
+                        break;
+                }
+            }
+            
+            // Устанавливаем прозрачность
+            ctx.globalAlpha = opacity;
+            
+            if (watermarkType === 'text' && watermarkText.value.trim()) {
+                // Текстовая водяная марка
+                const fontSize = Math.min(width, height) * 0.05;
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const text = watermarkText.value.trim();
+                
+                // Рисуем текст с обводкой
+                ctx.strokeText(text, x + (watermarkType === 'text' ? 50 : 0), y + (watermarkType === 'text' ? 25 : 0));
+                ctx.fillText(text, x + (watermarkType === 'text' ? 50 : 0), y + (watermarkType === 'text' ? 25 : 0));
+                
+            } else if (watermarkType === 'image' && watermarkImage) {
+                // Водяная марка из изображения
+                const watermarkWidth = width * 0.2;
+                const watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+                
+                // Рисуем изображение водяной марки
+                ctx.drawImage(watermarkImage, x, y, watermarkWidth, watermarkHeight);
+            }
+            
+            // Сбрасываем прозрачность
+            ctx.globalAlpha = 1.0;
         }
         
         function createVideoFromFrames(fps) {
@@ -969,142 +1276,6 @@
             drawNextFrame();
         }
         
-        function applyWatermarkToCanvas(ctx, width, height, frameIndex = 0, totalFrames = 1) {
-            const opacity = parseInt(opacitySlider.value) / 100;
-            
-            // Если включена подвижная водяная марка для видео
-            let currentPosition = position;
-            if (isVideo && movingWatermark.checked && totalFrames > 1) {
-                // Меняем позицию в зависимости от номера кадра
-                const positions = ['top-left', 'top-center', 'top-right', 
-                                  'center-left', 'center', 'center-right',
-                                  'bottom-left', 'bottom-center', 'bottom-right'];
-                const posIndex = Math.floor((frameIndex / totalFrames) * positions.length) % positions.length;
-                currentPosition = positions[posIndex];
-            }
-            
-            // Устанавливаем прозрачность
-            ctx.globalAlpha = opacity;
-            
-            if (watermarkType === 'text' && watermarkText.value.trim()) {
-                // Текстовая водяная марка
-                const fontSize = Math.min(width, height) * 0.05;
-                ctx.font = `bold ${fontSize}px Arial`;
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                const text = watermarkText.value.trim();
-                const textWidth = ctx.measureText(text).width;
-                const padding = fontSize * 0.5;
-                
-                // Вычисляем позицию
-                let x, y;
-                switch(currentPosition) {
-                    case 'top-left':
-                        x = textWidth/2 + padding;
-                        y = fontSize/2 + padding;
-                        ctx.textAlign = 'left';
-                        break;
-                    case 'top-center':
-                        x = width / 2;
-                        y = fontSize/2 + padding;
-                        break;
-                    case 'top-right':
-                        x = width - textWidth/2 - padding;
-                        y = fontSize/2 + padding;
-                        ctx.textAlign = 'right';
-                        break;
-                    case 'center-left':
-                        x = textWidth/2 + padding;
-                        y = height / 2;
-                        ctx.textAlign = 'left';
-                        break;
-                    case 'center':
-                        x = width / 2;
-                        y = height / 2;
-                        break;
-                    case 'center-right':
-                        x = width - textWidth/2 - padding;
-                        y = height / 2;
-                        ctx.textAlign = 'right';
-                        break;
-                    case 'bottom-left':
-                        x = textWidth/2 + padding;
-                        y = height - fontSize/2 - padding;
-                        ctx.textAlign = 'left';
-                        break;
-                    case 'bottom-center':
-                        x = width / 2;
-                        y = height - fontSize/2 - padding;
-                        break;
-                    case 'bottom-right':
-                        x = width - textWidth/2 - padding;
-                        y = height - fontSize/2 - padding;
-                        ctx.textAlign = 'right';
-                        break;
-                }
-                
-                // Рисуем текст с обводкой
-                ctx.strokeText(text, x, y);
-                ctx.fillText(text, x, y);
-                
-            } else if (watermarkType === 'image' && watermarkImage) {
-                // Водяная марка из изображения
-                const watermarkWidth = width * 0.2;
-                const watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
-                
-                // Вычисляем позицию
-                let x, y;
-                switch(currentPosition) {
-                    case 'top-left':
-                        x = 10;
-                        y = 10;
-                        break;
-                    case 'top-center':
-                        x = (width - watermarkWidth) / 2;
-                        y = 10;
-                        break;
-                    case 'top-right':
-                        x = width - watermarkWidth - 10;
-                        y = 10;
-                        break;
-                    case 'center-left':
-                        x = 10;
-                        y = (height - watermarkHeight) / 2;
-                        break;
-                    case 'center':
-                        x = (width - watermarkWidth) / 2;
-                        y = (height - watermarkHeight) / 2;
-                        break;
-                    case 'center-right':
-                        x = width - watermarkWidth - 10;
-                        y = (height - watermarkHeight) / 2;
-                        break;
-                    case 'bottom-left':
-                        x = 10;
-                        y = height - watermarkHeight - 10;
-                        break;
-                    case 'bottom-center':
-                        x = (width - watermarkWidth) / 2;
-                        y = height - watermarkHeight - 10;
-                        break;
-                    case 'bottom-right':
-                        x = width - watermarkWidth - 10;
-                        y = height - watermarkHeight - 10;
-                        break;
-                }
-                
-                // Рисуем изображение водяной марки
-                ctx.drawImage(watermarkImage, x, y, watermarkWidth, watermarkHeight);
-            }
-            
-            // Сбрасываем прозрачность
-            ctx.globalAlpha = 1.0;
-        }
-        
         function downloadResult() {
             if (!processedMedia) return;
             
@@ -1156,6 +1327,20 @@
             originalFormat = '';
             originalFileName = '';
             
+            // Сброс состояния водяного знака
+            watermarkState = {
+                x: 0,
+                y: 0,
+                dx: 2,
+                dy: 1.5,
+                width: 0,
+                height: 0,
+                angle: 0,
+                radius: 50,
+                centerX: 0,
+                centerY: 0
+            };
+            
             // Сброс UI
             mediaPreview.classList.add('hidden');
             videoPreview.classList.add('hidden');
@@ -1176,6 +1361,10 @@
             opacitySlider.value = 70;
             opacityValue.textContent = '70%';
             movingWatermark.checked = false;
+            motionSettings.classList.remove('active');
+            speedSlider.value = 5;
+            speedValue.textContent = '5';
+            motionType.value = 'bounce';
             
             // Сброс позиции
             positionButtons.forEach(btn => btn.classList.remove('active'));
