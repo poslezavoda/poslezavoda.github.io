@@ -319,6 +319,121 @@
             margin-top: 10px;
         }
 
+        /* Исправление для выпадающего списка */
+        select {
+            background: rgba(30, 30, 46, 0.95);
+            color: white;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 20px;
+            padding-right: 40px;
+        }
+
+        select option {
+            background: rgba(30, 30, 46, 0.95);
+            color: white;
+        }
+
+        select:focus option {
+            background: rgba(0, 114, 255, 0.2);
+        }
+
+        /* Стили для сохраненных водяных знаков */
+        .saved-watermarks {
+            margin-top: 15px;
+        }
+
+        .saved-watermarks-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .saved-watermark-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .saved-watermark-item:hover {
+            background: rgba(0, 114, 255, 0.1);
+        }
+
+        .saved-watermark-item.active {
+            background: rgba(0, 114, 255, 0.2);
+            border: 1px solid #0072ff;
+        }
+
+        .watermark-item-name {
+            font-weight: 500;
+        }
+
+        .watermark-item-type {
+            font-size: 12px;
+            color: #aaa;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .watermark-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .watermark-item-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .watermark-item-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .save-watermark-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .save-watermark-input {
+            flex: 1;
+        }
+
+        .save-watermark-btn {
+            background: rgba(0, 114, 255, 0.2);
+            color: white;
+            border: 1px solid #0072ff;
+            border-radius: 8px;
+            padding: 0 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .save-watermark-btn:hover {
+            background: rgba(0, 114, 255, 0.3);
+        }
+
         .button-group {
             display: flex;
             gap: 15px;
@@ -434,6 +549,10 @@
             
             .motion-controls {
                 grid-template-columns: 1fr;
+            }
+            
+            .save-watermark-form {
+                flex-direction: column;
             }
         }
     </style>
@@ -578,6 +697,20 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="control-group saved-watermarks">
+                    <label>Сохраненные водяные знаки:</label>
+                    <div class="save-watermark-form">
+                        <input type="text" id="saveWatermarkName" class="save-watermark-input" placeholder="Название водяного знака">
+                        <button class="save-watermark-btn" id="saveWatermarkBtn">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                    </div>
+                    
+                    <div class="saved-watermarks-list" id="savedWatermarksList">
+                        <!-- Здесь будут отображаться сохраненные водяные знаки -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -639,6 +772,9 @@
         const imageTypeOption = document.getElementById('imageTypeOption');
         const textWatermarkControl = document.getElementById('textWatermarkControl');
         const imageWatermarkControl = document.getElementById('imageWatermarkControl');
+        const saveWatermarkName = document.getElementById('saveWatermarkName');
+        const saveWatermarkBtn = document.getElementById('saveWatermarkBtn');
+        const savedWatermarksList = document.getElementById('savedWatermarksList');
         
         // Переменные состояния
         let originalMedia = null;
@@ -651,6 +787,8 @@
         let videoDuration = 0;
         let originalFormat = '';
         let originalFileName = '';
+        let savedWatermarks = [];
+        let activeWatermarkId = null;
         
         // Переменные для плавного движения водяного знака
         let watermarkState = {
@@ -670,6 +808,9 @@
         init();
         
         function init() {
+            // Загружаем сохраненные водяные знаки из localStorage
+            loadSavedWatermarks();
+            
             // События для загрузки основного медиа
             uploadArea.addEventListener('click', () => fileInput.click());
             changeMediaBtn.addEventListener('click', () => fileInput.click());
@@ -710,6 +851,9 @@
                 speedValue.textContent = speedSlider.value;
             });
             
+            // События для сохранения водяного знака
+            saveWatermarkBtn.addEventListener('click', saveWatermark);
+            
             // События для кнопок действий
             applyBtn.addEventListener('click', applyWatermark);
             downloadBtn.addEventListener('click', downloadResult);
@@ -730,6 +874,207 @@
                 textWatermarkControl.classList.add('hidden');
                 imageWatermarkControl.classList.remove('hidden');
             }
+        }
+        
+        function loadSavedWatermarks() {
+            const saved = localStorage.getItem('telegramWatermarks');
+            if (saved) {
+                try {
+                    savedWatermarks = JSON.parse(saved);
+                    renderSavedWatermarks();
+                } catch (e) {
+                    console.error('Ошибка загрузки сохраненных водяных знаков:', e);
+                    savedWatermarks = [];
+                }
+            } else {
+                savedWatermarks = [];
+            }
+        }
+        
+        function saveWatermarksToStorage() {
+            localStorage.setItem('telegramWatermarks', JSON.stringify(savedWatermarks));
+        }
+        
+        function saveWatermark() {
+            const name = saveWatermarkName.value.trim();
+            if (!name) {
+                alert('Введите название водяного знака');
+                return;
+            }
+            
+            // Проверяем, есть ли уже водяной знак с таким именем
+            const existingIndex = savedWatermarks.findIndex(w => w.name === name);
+            
+            const watermarkData = {
+                id: Date.now(),
+                name: name,
+                type: watermarkType,
+                text: watermarkText.value,
+                opacity: opacitySlider.value,
+                position: position,
+                movingEnabled: movingWatermark.checked,
+                speed: speedSlider.value,
+                motionType: motionType.value,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Если это изображение, сохраняем DataURL
+            if (watermarkType === 'image' && watermarkImage) {
+                watermarkData.imageData = watermarkImage.src;
+            }
+            
+            if (existingIndex !== -1) {
+                // Обновляем существующий
+                savedWatermarks[existingIndex] = watermarkData;
+            } else {
+                // Добавляем новый
+                savedWatermarks.push(watermarkData);
+            }
+            
+            // Сохраняем в localStorage
+            saveWatermarksToStorage();
+            
+            // Очищаем поле ввода
+            saveWatermarkName.value = '';
+            
+            // Обновляем список
+            renderSavedWatermarks();
+            
+            // Выбираем сохраненный водяной знак
+            selectWatermark(watermarkData.id);
+            
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        
+        function renderSavedWatermarks() {
+            savedWatermarksList.innerHTML = '';
+            
+            if (savedWatermarks.length === 0) {
+                savedWatermarksList.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Нет сохраненных водяных знаков</div>';
+                return;
+            }
+            
+            // Сортируем по времени создания (новые сверху)
+            const sortedWatermarks = [...savedWatermarks].sort((a, b) => 
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+            
+            sortedWatermarks.forEach(watermark => {
+                const item = document.createElement('div');
+                item.className = 'saved-watermark-item';
+                if (watermark.id === activeWatermarkId) {
+                    item.classList.add('active');
+                }
+                item.dataset.id = watermark.id;
+                
+                item.innerHTML = `
+                    <div>
+                        <div class="watermark-item-name">${watermark.name}</div>
+                        <div class="watermark-item-type">${watermark.type === 'text' ? 'Текст' : 'Изображение'}</div>
+                    </div>
+                    <div class="watermark-item-actions">
+                        <button class="watermark-item-btn load-watermark-btn" title="Загрузить">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button class="watermark-item-btn delete-watermark-btn" title="Удалить">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Добавляем обработчики событий
+                item.querySelector('.load-watermark-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadWatermark(watermark.id);
+                });
+                
+                item.querySelector('.delete-watermark-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteWatermark(watermark.id);
+                });
+                
+                item.addEventListener('click', () => {
+                    loadWatermark(watermark.id);
+                });
+                
+                savedWatermarksList.appendChild(item);
+            });
+        }
+        
+        function selectWatermark(id) {
+            activeWatermarkId = id;
+            renderSavedWatermarks();
+        }
+        
+        function loadWatermark(id) {
+            const watermark = savedWatermarks.find(w => w.id === id);
+            if (!watermark) return;
+            
+            // Устанавливаем тип
+            setWatermarkType(watermark.type);
+            
+            // Устанавливаем текст
+            if (watermark.type === 'text') {
+                watermarkText.value = watermark.text;
+            }
+            
+            // Устанавливаем прозрачность
+            opacitySlider.value = watermark.opacity;
+            opacityValue.textContent = `${watermark.opacity}%`;
+            
+            // Устанавливаем позицию
+            positionButtons.forEach(btn => btn.classList.remove('active'));
+            const positionBtn = document.querySelector(`.position-btn[data-position="${watermark.position}"]`);
+            if (positionBtn) {
+                positionBtn.classList.add('active');
+                position = watermark.position;
+            }
+            
+            // Устанавливаем настройки движения (только если видео загружено)
+            if (isVideo) {
+                movingWatermark.checked = watermark.movingEnabled || false;
+                if (movingWatermark.checked) {
+                    motionSettings.classList.add('active');
+                } else {
+                    motionSettings.classList.remove('active');
+                }
+                
+                speedSlider.value = watermark.speed || 5;
+                speedValue.textContent = speedSlider.value;
+                motionType.value = watermark.motionType || 'bounce';
+            }
+            
+            // Если это изображение, загружаем его
+            if (watermark.type === 'image' && watermark.imageData) {
+                watermarkImage = new Image();
+                watermarkImage.src = watermark.imageData;
+                watermarkImage.onload = () => {
+                    watermarkImagePreview.src = watermark.imageData;
+                    watermarkImagePreview.classList.remove('hidden');
+                };
+            }
+            
+            // Выделяем выбранный водяной знак
+            selectWatermark(id);
+            
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        
+        function deleteWatermark(id) {
+            if (!confirm('Удалить этот водяной знак?')) return;
+            
+            const index = savedWatermarks.findIndex(w => w.id === id);
+            if (index !== -1) {
+                savedWatermarks.splice(index, 1);
+                saveWatermarksToStorage();
+                renderSavedWatermarks();
+                
+                if (activeWatermarkId === id) {
+                    activeWatermarkId = null;
+                }
+            }
+            
+            tg.HapticFeedback.impactOccurred('light');
         }
         
         function handleMediaUpload(event) {
@@ -1365,6 +1710,7 @@
             speedSlider.value = 5;
             speedValue.textContent = '5';
             motionType.value = 'bounce';
+            saveWatermarkName.value = '';
             
             // Сброс позиции
             positionButtons.forEach(btn => btn.classList.remove('active'));
