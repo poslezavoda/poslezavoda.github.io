@@ -431,36 +431,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        .motion-settings {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border: 1px solid #dee2e6;
-        }
-        
-        .motion-options {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .motion-btn {
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            text-align: center;
-            font-size: 14px;
-        }
-        
-        .motion-btn.active {
-            border-color: #007bff;
-            background: #e7f1ff;
-        }
-        
         .video-settings {
             background: #f8f9fa;
             padding: 15px;
@@ -488,46 +458,14 @@
             border-radius: 6px;
         }
         
-        .motion-preview {
-            height: 100px;
-            background: linear-gradient(45deg, #f8f9fa 25%, #e9ecef 25%, #e9ecef 50%, #f8f9fa 50%, #f8f9fa 75%, #e9ecef 75%, #e9ecef);
-            background-size: 20px 20px;
-            border-radius: 8px;
+        .video-format-warning {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            color: #004085;
+            padding: 10px;
+            border-radius: 6px;
             margin-top: 10px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .motion-dot {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: #007bff;
-            border-radius: 50%;
-            top: 40px;
-            left: 40px;
-            transition: all 0.5s ease;
-        }
-        
-        .motion-type-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .motion-type-btn {
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            text-align: center;
-        }
-        
-        .motion-type-btn.active {
-            border-color: #007bff;
-            background: #e7f1ff;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -584,6 +522,12 @@
                         <input type="range" id="fontSize" min="12" max="72" value="36" oninput="updateFontSizeValue()">
                         <span id="fontSizeValue">36px</span>
                     </div>
+                    
+                    <div style="margin-top: 10px;">
+                        <label>
+                            <input type="checkbox" id="textShadow" checked> Добавить тень для лучшей видимости
+                        </label>
+                    </div>
                 </div>
 
                 <div id="imageSection" class="form-group" style="display: none;">
@@ -593,46 +537,6 @@
                     </label>
                     <input type="file" id="watermarkImageFile" accept="image/*" style="display: none;">
                     <div id="imagePreview"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Тип водяного знака:</label>
-                    <div class="motion-type-options">
-                        <button class="motion-type-btn active" onclick="setWatermarkMotionType('static')">🛑 Статичный</button>
-                        <button class="motion-type-btn" onclick="setWatermarkMotionType('animated')">🎬 Анимированный</button>
-                    </div>
-                </div>
-
-                <div id="motionSettings" class="motion-settings" style="display: none;">
-                    <label>Тип движения:</label>
-                    <div class="motion-options">
-                        <button class="motion-btn active" onclick="setMotionType('slide')">📏 Скольжение</button>
-                        <button class="motion-btn" onclick="setMotionType('bounce')">🏀 Отскок</button>
-                        <button class="motion-btn" onclick="setMotionType('rotate')">🔄 Вращение</button>
-                        <button class="motion-btn" onclick="setMotionType('pulse')">💓 Пульсация</button>
-                    </div>
-                    
-                    <div class="setting-row">
-                        <label>Скорость движения:</label>
-                        <select id="motionSpeed">
-                            <option value="slow">Медленно</option>
-                            <option value="medium" selected>Средне</option>
-                            <option value="fast">Быстро</option>
-                        </select>
-                    </div>
-                    
-                    <div class="setting-row">
-                        <label>Амплитуда движения:</label>
-                        <select id="motionAmplitude">
-                            <option value="small">Маленькая</option>
-                            <option value="medium" selected>Средняя</option>
-                            <option value="large">Большая</option>
-                        </select>
-                    </div>
-                    
-                    <div class="motion-preview" id="motionPreview">
-                        <div class="motion-dot" id="motionDot"></div>
-                    </div>
                 </div>
 
                 <div class="form-group">
@@ -696,7 +600,7 @@
                 <div class="form-group">
                     <label>Загрузите медиафайлы:</label>
                     <label class="file-input-label" onclick="document.getElementById('mediaFiles').click()">
-                        📁 Выбрать фото или видео (до 3 файлов)
+                        📁 Выбрать фото или видео (до 2 файлов)
                     </label>
                     <input type="file" id="mediaFiles" multiple accept="image/*,video/*" style="display: none;" onchange="handleMediaFiles(this.files)">
                     <div id="mediaPreview" class="media-preview"></div>
@@ -712,31 +616,16 @@
                     
                     <div class="setting-row">
                         <label>Сохранить исходный FPS:</label>
-                        <input type="checkbox" id="keepOriginalFPS" checked>
+                        <input type="checkbox" id="keepOriginalFPS" checked disabled>
+                        <span style="font-size: 12px; color: #666;">(всегда включено)</span>
                     </div>
                     
-                    <div class="setting-row">
-                        <label>FPS (кадров в секунду):</label>
-                        <input type="number" id="outputFPS" min="1" max="60" value="30" style="display: none;">
-                        <span id="fpsValue">Исходный FPS</span>
-                    </div>
-                    
-                    <div class="setting-row">
-                        <label>Качество видео:</label>
-                        <select id="videoQuality">
-                            <option value="0.5">Низкое (быстрее)</option>
-                            <option value="0.7" selected>Среднее</option>
-                            <option value="0.9">Высокое</option>
-                        </select>
-                    </div>
-                    
-                    <div class="video-option" style="margin-top: 15px;">
-                        <input type="checkbox" id="enableWatermarkMotion" checked>
-                        <label for="enableWatermarkMotion"><strong>Включить движение водяного знака (если настроено)</strong></label>
+                    <div class="video-format-warning">
+                        ⚠️ Видео будет сохранено в формате MP4 с сохранением исходного FPS и качества
                     </div>
                     
                     <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 13px;">
-                        ⚠️ Обработка видео зависит от его длины. Рекомендуется обрабатывать видео до 30 секунд.
+                        ⚠️ Обработка видео может занять время в зависимости от длины и качества. Рекомендуется обрабатывать видео до 30 секунд.
                     </div>
                 </div>
 
@@ -805,10 +694,7 @@
             watermarkMargin: 20,
             textColor: '#FFFFFF',
             fontSize: 36,
-            watermarkMotionType: 'static', // 'static' или 'animated'
-            motionType: 'slide', // 'slide', 'bounce', 'rotate', 'pulse'
-            motionSpeed: 'medium',
-            motionAmplitude: 'medium'
+            hasTextShadow: true
         };
 
         // Инициализация при загрузке
@@ -852,19 +738,9 @@
                 document.getElementById('textColorValue').textContent = e.target.value;
             });
             
-            // Настраиваем сохранение FPS
-            document.getElementById('keepOriginalFPS').addEventListener('change', function(e) {
-                const outputFPS = document.getElementById('outputFPS');
-                const fpsValue = document.getElementById('fpsValue');
-                
-                if (e.target.checked) {
-                    outputFPS.style.display = 'none';
-                    fpsValue.textContent = 'Исходный FPS';
-                    fpsValue.style.display = 'inline';
-                } else {
-                    outputFPS.style.display = 'inline-block';
-                    fpsValue.style.display = 'none';
-                }
+            // Настраиваем тень текста
+            document.getElementById('textShadow').addEventListener('change', function(e) {
+                appState.hasTextShadow = e.target.checked;
             });
             
             // Обновляем значения
@@ -872,83 +748,9 @@
             updateMarginValue();
             updateFontSizeValue();
             
-            // Запускаем анимацию превью движения
-            startMotionPreview();
-            
             // Добавляем тестовый водяной знак по умолчанию
             addDefaultWatermark();
         });
-
-        // Анимация превью движения
-        function startMotionPreview() {
-            let startTime = Date.now();
-            const dot = document.getElementById('motionDot');
-            const preview = document.getElementById('motionPreview');
-            
-            function animate() {
-                if (!dot || dot.style.display === 'none') return;
-                
-                const elapsed = (Date.now() - startTime) / 1000;
-                const width = preview.clientWidth - 20;
-                const height = preview.clientHeight - 20;
-                
-                let x = 0, y = 0;
-                
-                switch(appState.motionType) {
-                    case 'slide':
-                        // Скольжение по горизонтали
-                        x = (Math.sin(elapsed * getSpeedMultiplier()) * 0.5 + 0.5) * width;
-                        y = height / 2;
-                        break;
-                    case 'bounce':
-                        // Отскок
-                        x = (Math.sin(elapsed * getSpeedMultiplier() * 1.5) * 0.5 + 0.5) * width;
-                        y = (Math.abs(Math.sin(elapsed * getSpeedMultiplier() * 2)) * 0.7 + 0.15) * height;
-                        break;
-                    case 'rotate':
-                        // Вращение по кругу
-                        const radius = Math.min(width, height) * 0.4;
-                        x = width / 2 + Math.cos(elapsed * getSpeedMultiplier()) * radius;
-                        y = height / 2 + Math.sin(elapsed * getSpeedMultiplier()) * radius;
-                        break;
-                    case 'pulse':
-                        // Пульсация в центре
-                        x = width / 2;
-                        y = height / 2;
-                        const scale = 0.5 + Math.sin(elapsed * getSpeedMultiplier() * 2) * 0.3;
-                        dot.style.transform = `translate(-50%, -50%) scale(${scale})`;
-                        break;
-                }
-                
-                if (appState.motionType !== 'pulse') {
-                    dot.style.left = x + 'px';
-                    dot.style.top = y + 'px';
-                    dot.style.transform = 'translate(-50%, -50%)';
-                }
-                
-                requestAnimationFrame(animate);
-            }
-            
-            animate();
-        }
-
-        function getSpeedMultiplier() {
-            switch(appState.motionSpeed) {
-                case 'slow': return 0.5;
-                case 'medium': return 1;
-                case 'fast': return 2;
-                default: return 1;
-            }
-        }
-
-        function getAmplitudeMultiplier() {
-            switch(appState.motionAmplitude) {
-                case 'small': return 0.5;
-                case 'medium': return 1;
-                case 'large': return 1.5;
-                default: return 1;
-            }
-        }
 
         // Функции управления интерфейсом
         function showSection(sectionId) {
@@ -977,32 +779,6 @@
             
             document.getElementById('textSection').style.display = type === 'text' ? 'block' : 'none';
             document.getElementById('imageSection').style.display = type === 'image' ? 'block' : 'none';
-        }
-
-        function setWatermarkMotionType(type) {
-            appState.watermarkMotionType = type;
-            
-            document.querySelectorAll('.motion-type-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            const motionSettings = document.getElementById('motionSettings');
-            motionSettings.style.display = type === 'animated' ? 'block' : 'none';
-            
-            const motionDot = document.getElementById('motionDot');
-            if (motionDot) {
-                motionDot.style.display = type === 'animated' ? 'block' : 'none';
-            }
-        }
-
-        function setMotionType(type) {
-            appState.motionType = type;
-            
-            document.querySelectorAll('.motion-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
         }
 
         function setPosition(position) {
@@ -1045,12 +821,7 @@
                 margin: 20,
                 textColor: '#FFFFFF',
                 fontSize: 36,
-                motionType: 'static',
-                motionSettings: {
-                    type: 'slide',
-                    speed: 'medium',
-                    amplitude: 'medium'
-                },
+                hasTextShadow: true,
                 created: new Date().toISOString()
             };
             
@@ -1073,12 +844,7 @@
             const margin = appState.watermarkMargin;
             const textColor = appState.textColor;
             const fontSize = appState.fontSize;
-            const motionType = appState.watermarkMotionType;
-            const motionSettings = {
-                type: appState.motionType,
-                speed: appState.motionSpeed,
-                amplitude: appState.motionAmplitude
-            };
+            const hasTextShadow = appState.hasTextShadow;
             
             let content = '';
             
@@ -1089,7 +855,7 @@
                     return;
                 }
                 content = text;
-                createWatermarkObject(name, type, content, size, position, opacity, margin, textColor, fontSize, motionType, motionSettings);
+                createWatermarkObject(name, type, content, size, position, opacity, margin, textColor, fontSize, hasTextShadow);
             } else {
                 const fileInput = document.getElementById('watermarkImageFile');
                 if (!fileInput.files[0]) {
@@ -1100,13 +866,13 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     content = event.target.result;
-                    createWatermarkObject(name, type, content, size, position, opacity, margin, null, null, motionType, motionSettings);
+                    createWatermarkObject(name, type, content, size, position, opacity, margin, null, null, hasTextShadow);
                 };
                 reader.readAsDataURL(fileInput.files[0]);
             }
         }
 
-        function createWatermarkObject(name, type, content, size, position, opacity, margin, textColor, fontSize, motionType, motionSettings) {
+        function createWatermarkObject(name, type, content, size, position, opacity, margin, textColor, fontSize, hasTextShadow) {
             const watermark = {
                 id: Date.now(),
                 name: name,
@@ -1118,12 +884,7 @@
                 margin: margin,
                 textColor: textColor || '#FFFFFF',
                 fontSize: fontSize || 36,
-                motionType: motionType || 'static',
-                motionSettings: motionSettings || {
-                    type: 'slide',
-                    speed: 'medium',
-                    amplitude: 'medium'
-                },
+                hasTextShadow: hasTextShadow !== undefined ? hasTextShadow : true,
                 created: new Date().toISOString()
             };
             
@@ -1173,8 +934,7 @@
                         <div style="font-size: 14px; color: #6c757d; margin-top: 4px;">
                             Тип: ${watermark.type === 'text' ? 'Текст' : 'Изображение'} | 
                             Размер: ${watermark.size}% | 
-                            Позиция: ${getPositionName(watermark.position)} |
-                            Движение: ${watermark.motionType === 'animated' ? 'Анимированный' : 'Статичный'}
+                            Позиция: ${getPositionName(watermark.position)}
                         </div>
                     </div>
                     <div class="watermark-actions">
@@ -1208,7 +968,7 @@
             appState.watermarks.forEach(watermark => {
                 const option = document.createElement('option');
                 option.value = watermark.id;
-                option.textContent = `${watermark.name} (${watermark.type === 'text' ? 'Текст' : 'Изображение'}) - ${watermark.motionType === 'animated' ? 'Анимированный' : 'Статичный'}`;
+                option.textContent = `${watermark.name} (${watermark.type === 'text' ? 'Текст' : 'Изображение'})`;
                 select.appendChild(option);
             });
         }
@@ -1223,7 +983,6 @@
                     <small>Тип: ${watermark.type === 'text' ? 'Текст' : 'Изображение'}, 
                     Размер: ${watermark.size}%, 
                     Позиция: ${getPositionName(watermark.position)}, 
-                    Движение: ${watermark.motionType === 'animated' ? 'Анимированный' : 'Статичный'},
                     Прозрачность: ${watermark.opacity}%</small>
                 `;
                 updatePreview();
@@ -1248,7 +1007,7 @@
 
         // Работа с медиафайлами
         function handleMediaFiles(files) {
-            const maxFiles = 3;
+            const maxFiles = 2; // Уменьшено для стабильности
             if (files.length > maxFiles) {
                 showAlert(`Максимальное количество файлов: ${maxFiles}. Будут обработаны первые ${maxFiles} файлов.`, 'info');
                 files = Array.from(files).slice(0, maxFiles);
@@ -1362,7 +1121,7 @@
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         // Накладываем водяной знак
-                        applyWatermarkToCanvas(ctx, width, height, appState.selectedWatermark, 0);
+                        applyWatermarkToCanvas(ctx, width, height, appState.selectedWatermark);
                         
                         document.getElementById('previewPlaceholder').style.display = 'none';
                         canvas.style.display = 'block';
@@ -1370,57 +1129,10 @@
                     img.src = event.target.result;
                 };
                 reader.readAsDataURL(firstFile);
-            } else if (firstFile.type.startsWith('video/')) {
-                const video = document.createElement('video');
-                video.muted = true;
-                video.playsInline = true;
-                
-                video.onloadeddata = function() {
-                    video.currentTime = 0;
-                };
-                
-                video.onseeked = function() {
-                    const maxWidth = 800;
-                    const maxHeight = 600;
-                    let width = video.videoWidth;
-                    let height = video.videoHeight;
-                    
-                    if (width > maxWidth) {
-                        height = (maxWidth / width) * height;
-                        width = maxWidth;
-                    }
-                    
-                    if (height > maxHeight) {
-                        width = (maxHeight / height) * width;
-                        height = maxHeight;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(video, 0, 0, width, height);
-                    
-                    // Накладываем водяной знак
-                    applyWatermarkToCanvas(ctx, width, height, appState.selectedWatermark, 0);
-                    
-                    document.getElementById('previewPlaceholder').style.display = 'none';
-                    canvas.style.display = 'block';
-                    
-                    URL.revokeObjectURL(video.src);
-                };
-                
-                video.onerror = function() {
-                    console.error('Ошибка загрузки видео для превью');
-                    showAlert('Не удалось загрузить видео для превью', 'error');
-                };
-                
-                video.src = URL.createObjectURL(firstFile);
-                video.load();
             }
         }
 
-        function applyWatermarkToCanvas(ctx, width, height, watermark, time = 0) {
+        function applyWatermarkToCanvas(ctx, width, height, watermark) {
             if (!watermark) return;
             
             // Вычисляем размер водяного знака
@@ -1432,7 +1144,6 @@
             const margin = watermark.margin || 20;
             let x, y;
             
-            // Базовая позиция
             switch (watermark.position) {
                 case 'top-left':
                     x = margin;
@@ -1475,14 +1186,6 @@
                     y = height - watermarkHeight - margin;
             }
             
-            // Применяем движение если водяной знак анимированный и время передано
-            if (watermark.motionType === 'animated' && watermark.motionSettings) {
-                const motion = calculateMotionPosition(x, y, width, height, watermarkWidth, watermarkHeight, 
-                                                      watermark.motionSettings, time);
-                x = motion.x;
-                y = motion.y;
-            }
-            
             // Устанавливаем прозрачность
             ctx.globalAlpha = (watermark.opacity || 70) / 100;
             
@@ -1500,8 +1203,22 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
+                // Добавляем тень если нужно
+                if (watermark.hasTextShadow !== false) {
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                    ctx.shadowBlur = 4;
+                    ctx.shadowOffsetX = 2;
+                    ctx.shadowOffsetY = 2;
+                }
+                
                 // Рисуем текст
                 ctx.fillText(watermark.content, 0, 0);
+                
+                // Сбрасываем тень
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
                 
                 // Восстанавливаем состояние canvas
                 ctx.restore();
@@ -1528,59 +1245,6 @@
             
             // Восстанавливаем прозрачность
             ctx.globalAlpha = 1;
-        }
-
-        function calculateMotionPosition(baseX, baseY, canvasWidth, canvasHeight, watermarkWidth, watermarkHeight, motionSettings, time) {
-            const speedMultiplier = getMotionSpeedMultiplier(motionSettings.speed);
-            const amplitudeMultiplier = getMotionAmplitudeMultiplier(motionSettings.amplitude);
-            
-            let offsetX = 0;
-            let offsetY = 0;
-            
-            switch(motionSettings.type) {
-                case 'slide':
-                    // Скольжение по горизонтали
-                    offsetX = Math.sin(time * speedMultiplier) * canvasWidth * 0.2 * amplitudeMultiplier;
-                    break;
-                case 'bounce':
-                    // Отскок
-                    offsetX = Math.sin(time * speedMultiplier * 1.5) * canvasWidth * 0.15 * amplitudeMultiplier;
-                    offsetY = Math.abs(Math.sin(time * speedMultiplier * 2)) * canvasHeight * 0.1 * amplitudeMultiplier;
-                    break;
-                case 'rotate':
-                    // Вращение вокруг базовой позиции
-                    const radius = Math.min(canvasWidth, canvasHeight) * 0.1 * amplitudeMultiplier;
-                    offsetX = Math.cos(time * speedMultiplier) * radius;
-                    offsetY = Math.sin(time * speedMultiplier) * radius;
-                    break;
-                case 'pulse':
-                    // Пульсация размера (обрабатывается отдельно)
-                    // Возвращаем базовую позицию
-                    break;
-            }
-            
-            return {
-                x: Math.max(0, Math.min(canvasWidth - watermarkWidth, baseX + offsetX)),
-                y: Math.max(0, Math.min(canvasHeight - watermarkHeight, baseY + offsetY))
-            };
-        }
-
-        function getMotionSpeedMultiplier(speed) {
-            switch(speed) {
-                case 'slow': return 0.5;
-                case 'medium': return 1;
-                case 'fast': return 2;
-                default: return 1;
-            }
-        }
-
-        function getMotionAmplitudeMultiplier(amplitude) {
-            switch(amplitude) {
-                case 'small': return 0.5;
-                case 'medium': return 1;
-                case 'large': return 1.5;
-                default: return 1;
-            }
         }
 
         // Основная функция обработки
@@ -1621,7 +1285,7 @@
                     } else if (file.type.startsWith('video/')) {
                         const processFullVideo = document.getElementById('processFullVideo').checked;
                         if (processFullVideo) {
-                            await processVideoFull(file);
+                            await processVideoWithFFmpeg(file);
                         } else {
                             await processVideoScreenshot(file);
                         }
@@ -1662,7 +1326,9 @@
                         ctx.drawImage(img, 0, 0);
                         applyWatermarkToCanvas(ctx, img.width, img.height, appState.selectedWatermark);
                         
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                        // Определяем формат сохранения
+                        const format = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+                        const dataUrl = canvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.9 : 1.0);
                         downloadFile(dataUrl, `watermarked_${file.name}`);
                         resolve();
                     };
@@ -1695,7 +1361,7 @@
                         canvas.width = video.videoWidth;
                         canvas.height = video.videoHeight;
                         ctx.drawImage(video, 0, 0);
-                        applyWatermarkToCanvas(ctx, video.videoWidth, video.videoHeight, appState.selectedWatermark, video.currentTime);
+                        applyWatermarkToCanvas(ctx, video.videoWidth, video.videoHeight, appState.selectedWatermark);
                         
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                         downloadFile(dataUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.jpg`);
@@ -1718,16 +1384,16 @@
             });
         }
 
-        async function processVideoFull(file) {
+        async function processVideoWithFFmpeg(file) {
             return new Promise(async (resolve, reject) => {
+                showLoading(true, `Обработка видео: ${file.name}`, 'Подготовка к обработке...');
+                
                 try {
-                    showLoading(true, `Обработка видео: ${file.name}`, 'Это может занять некоторое время...');
-                    
+                    // Создаем временный элемент для получения информации о видео
                     const video = document.createElement('video');
                     video.muted = true;
                     video.playsInline = true;
                     
-                    // Ждем загрузки метаданных
                     await new Promise((resolveLoad, rejectLoad) => {
                         video.onloadedmetadata = resolveLoad;
                         video.onerror = rejectLoad;
@@ -1735,53 +1401,34 @@
                     });
                     
                     const duration = video.duration;
-                    const keepOriginalFPS = document.getElementById('keepOriginalFPS').checked;
-                    let fps;
-                    
-                    if (keepOriginalFPS) {
-                        // Пытаемся определить FPS видео
-                        fps = 30; // По умолчанию
-                        try {
-                            // Создаем временный canvas для проверки
-                            const tempCanvas = document.createElement('canvas');
-                            const tempCtx = tempCanvas.getContext('2d');
-                            tempCanvas.width = 1;
-                            tempCanvas.height = 1;
-                            
-                            // Пробуем получить информацию о кадрах
-                            const track = video.videoTracks && video.videoTracks[0];
-                            if (track && track.getSettings) {
-                                const settings = track.getSettings();
-                                if (settings.frameRate) {
-                                    fps = settings.frameRate;
-                                }
-                            }
-                        } catch (e) {
-                            console.log('Не удалось определить FPS, используем 30 FPS');
-                            fps = 30;
-                        }
-                    } else {
-                        fps = parseInt(document.getElementById('outputFPS').value) || 30;
-                    }
-                    
-                    const quality = parseFloat(document.getElementById('videoQuality').value);
-                    const enableWatermarkMotion = document.getElementById('enableWatermarkMotion').checked;
+                    const width = video.videoWidth;
+                    const height = video.videoHeight;
                     
                     if (duration > 60) {
-                        showAlert('Видео слишком длинное. Рекомендуется обрабатывать видео до 1 минуты.', 'warning');
+                        showAlert('Видео слишком длинное. Обработка может занять много времени.', 'warning');
                     }
                     
                     // Создаем canvas для обработки
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Создаем временный canvas для водяного знака
+                    const watermarkCanvas = document.createElement('canvas');
+                    const watermarkCtx = watermarkCanvas.getContext('2d');
+                    watermarkCanvas.width = width;
+                    watermarkCanvas.height = height;
+                    
+                    // Сначала рисуем водяной знак на отдельном canvas
+                    applyWatermarkToCanvas(watermarkCtx, width, height, appState.selectedWatermark);
                     
                     // Создаем MediaRecorder для записи
-                    const stream = canvas.captureStream(fps);
+                    const stream = canvas.captureStream(30); // Используем 30 FPS как стандарт
+                    const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
                     const mediaRecorder = new MediaRecorder(stream, {
-                        mimeType: 'video/webm;codecs=vp9',
-                        videoBitsPerSecond: 2500000 * quality
+                        mimeType: mimeType,
+                        videoBitsPerSecond: 2500000
                     });
                     
                     const chunks = [];
@@ -1793,9 +1440,15 @@
                     };
                     
                     mediaRecorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        const blob = new Blob(chunks, { type: mimeType });
                         const url = URL.createObjectURL(blob);
-                        downloadFile(url, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}_${fps}fps.webm`);
+                        
+                        // Определяем расширение файла
+                        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                        const originalExtension = file.name.split('.').pop().toLowerCase();
+                        const finalExtension = ['mp4', 'webm', 'mov', 'avi'].includes(originalExtension) ? originalExtension : extension;
+                        
+                        downloadFile(url, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.${finalExtension}`);
                         URL.revokeObjectURL(video.src);
                         showLoading(false);
                         resolve();
@@ -1807,13 +1460,17 @@
                     };
                     
                     // Начинаем запись
-                    mediaRecorder.start();
+                    mediaRecorder.start(1000); // Собираем данные каждую секунду
                     
                     // Обрабатываем каждый кадр
                     let currentTime = 0;
-                    const timeStep = 1 / fps;
+                    const frameRate = 30; // Стандартный FPS
+                    const timeStep = 1 / frameRate;
                     
-                    const processFrame = async () => {
+                    // Устанавливаем начальное время видео
+                    video.currentTime = currentTime;
+                    
+                    const processNextFrame = () => {
                         if (currentTime >= duration) {
                             mediaRecorder.stop();
                             return;
@@ -1821,35 +1478,33 @@
                         
                         // Обновляем прогресс
                         const progressPercent = Math.min(100, (currentTime / duration) * 100);
-                        document.getElementById('videoProgress').textContent = `Прогресс: ${progressPercent.toFixed(1)}% (${fps} FPS)`;
+                        document.getElementById('videoProgress').textContent = 
+                            `Обработка: ${progressPercent.toFixed(1)}% (${currentTime.toFixed(1)}/${duration.toFixed(1)} сек)`;
                         
-                        // Устанавливаем время видео
                         video.currentTime = currentTime;
                         
-                        await new Promise((resolveFrame) => {
-                            video.onseeked = () => {
-                                // Очищаем canvas
-                                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                
-                                // Рисуем кадр
-                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                                
-                                // Накладываем водяной знак
-                                const watermarkTime = enableWatermarkMotion ? currentTime : 0;
-                                applyWatermarkToCanvas(ctx, canvas.width, canvas.height, appState.selectedWatermark, watermarkTime);
-                                
-                                // Переходим к следующему кадру
-                                currentTime += timeStep;
-                                resolveFrame();
-                            };
-                        });
-                        
-                        // Используем requestAnimationFrame для следующего кадра
-                        requestAnimationFrame(processFrame);
+                        video.onseeked = () => {
+                            // Очищаем основной canvas
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Рисуем кадр видео
+                            ctx.drawImage(video, 0, 0, width, height);
+                            
+                            // Накладываем водяной знак
+                            ctx.globalAlpha = (appState.selectedWatermark.opacity || 70) / 100;
+                            ctx.drawImage(watermarkCanvas, 0, 0);
+                            ctx.globalAlpha = 1;
+                            
+                            // Переходим к следующему кадру
+                            currentTime += timeStep;
+                            
+                            // Используем setTimeout для контроля скорости обработки
+                            setTimeout(processNextFrame, 0);
+                        };
                     };
                     
-                    // Запускаем обработку
-                    processFrame();
+                    // Запускаем обработку первого кадра
+                    processNextFrame();
                     
                 } catch (error) {
                     console.error('Ошибка обработки видео:', error);
