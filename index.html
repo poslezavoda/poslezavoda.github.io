@@ -371,7 +371,7 @@
             margin: 10px 0;
         }
         
-        .video-option input[type="radio"] {
+        .video-option input[type="checkbox"] {
             width: 20px;
             height: 20px;
         }
@@ -463,6 +463,25 @@
         .rotation-control input {
             flex: 1;
         }
+        
+        .video-quality {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .quality-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        .quality-option select {
+            width: 120px;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
@@ -509,8 +528,8 @@
                     
                     <label style="margin-top: 15px;">Цвет текста:</label>
                     <div class="color-picker">
-                        <input type="color" id="textColor" value="#000000" class="color-input">
-                        <span id="textColorValue">#000000</span>
+                        <input type="color" id="textColor" value="#FFFFFF" class="color-input">
+                        <span id="textColorValue">#FFFFFF</span>
                     </div>
                     
                     <label style="margin-top: 15px;">Размер шрифта:</label>
@@ -523,8 +542,8 @@
                     <div class="watermark-style-options">
                         <button class="style-btn active" onclick="setWatermarkStyle('normal')">Обычный</button>
                         <button class="style-btn" onclick="setWatermarkStyle('shadow')">С тенью</button>
+                        <button class="style-btn" onclick="setWatermarkStyle('outline')">С обводкой</button>
                         <button class="style-btn" onclick="setWatermarkStyle('background')">С фоном</button>
-                        <button class="style-btn" onclick="setWatermarkStyle('border')">С рамкой</button>
                     </div>
                     
                     <label style="margin-top: 15px;">Угол поворота: <span id="rotationValue">0°</span></label>
@@ -554,7 +573,6 @@
                         <option value="15" selected>Средний (15%)</option>
                         <option value="20">Большой (20%)</option>
                         <option value="25">Очень большой (25%)</option>
-                        <option value="30">Максимальный (30%)</option>
                     </select>
                 </div>
 
@@ -609,15 +627,42 @@
                 <div class="form-group">
                     <label>Загрузите медиафайлы:</label>
                     <label class="file-input-label" onclick="document.getElementById('mediaFiles').click()">
-                        📁 Выбрать фото или видео (до 5 файлов)
+                        📁 Выбрать фото или видео (до 3 файлов)
                     </label>
                     <input type="file" id="mediaFiles" multiple accept="image/*,video/*" style="display: none;" onchange="handleMediaFiles(this.files)">
                     <div id="mediaPreview" class="media-preview"></div>
                 </div>
 
-                <div class="video-processing-info" id="videoProcessingInfo" style="display: none;">
-                    <strong>🎬 Обработка видео:</strong><br>
-                    Для видео будет создан скриншот с водяным знаком. Для полной обработки видео используйте настольные приложения.
+                <div id="videoOptions" class="video-processing-info" style="display: none;">
+                    <strong>🎬 Настройки обработки видео:</strong><br>
+                    <div class="video-option">
+                        <input type="checkbox" id="processFullVideo" checked>
+                        <label for="processFullVideo">Обработать видео полностью (может занять время)</label>
+                    </div>
+                    
+                    <div class="video-quality">
+                        <div class="quality-option">
+                            <span>Качество:</span>
+                            <select id="videoQuality">
+                                <option value="0.5">Низкое (быстрее)</option>
+                                <option value="0.7" selected>Среднее</option>
+                                <option value="0.9">Высокое</option>
+                            </select>
+                        </div>
+                        <div class="quality-option">
+                            <span>Частота кадров:</span>
+                            <select id="videoFPS">
+                                <option value="10">10 FPS</option>
+                                <option value="15" selected>15 FPS</option>
+                                <option value="24">24 FPS</option>
+                                <option value="30">30 FPS</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        ⚠️ Обработка видео зависит от его длины. Рекомендуется обрабатывать видео до 30 секунд.
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -665,6 +710,7 @@
         <div class="spinner"></div>
         <div id="loadingText">Обработка...</div>
         <div id="loadingDetails" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+        <div id="videoProgress" style="margin-top: 10px; font-size: 12px; color: #888;"></div>
     </div>
 
     <script>
@@ -682,7 +728,7 @@
             watermarkPosition: 'bottom-right',
             watermarkOpacity: 70,
             watermarkMargin: 20,
-            textColor: '#000000',
+            textColor: '#FFFFFF',
             fontSize: 36,
             watermarkStyle: 'normal',
             rotation: 0,
@@ -829,7 +875,7 @@
                 position: 'bottom-right',
                 opacity: 70,
                 margin: 20,
-                textColor: '#000000',
+                textColor: '#FFFFFF',
                 fontSize: 36,
                 style: 'normal',
                 rotation: 0,
@@ -896,7 +942,7 @@
                 position: position,
                 opacity: opacity,
                 margin: margin,
-                textColor: textColor || '#000000',
+                textColor: textColor || '#FFFFFF',
                 fontSize: fontSize || 36,
                 style: style || 'normal',
                 rotation: rotation || 0,
@@ -1023,7 +1069,7 @@
 
         // Работа с медиафайлами
         function handleMediaFiles(files) {
-            const maxFiles = 5;
+            const maxFiles = 3;
             if (files.length > maxFiles) {
                 showAlert(`Максимальное количество файлов: ${maxFiles}. Будут обработаны первые ${maxFiles} файлов.`, 'info');
                 files = Array.from(files).slice(0, maxFiles);
@@ -1033,7 +1079,7 @@
             updateMediaPreview();
             
             const hasVideo = appState.mediaFiles.some(file => file.type.startsWith('video/'));
-            document.getElementById('videoProcessingInfo').style.display = hasVideo ? 'block' : 'none';
+            document.getElementById('videoOptions').style.display = hasVideo ? 'block' : 'none';
             
             if (files.length > 0 && appState.selectedWatermark) {
                 updatePreview();
@@ -1094,7 +1140,7 @@
             updateMediaPreview();
             
             const hasVideo = appState.mediaFiles.some(file => file.type.startsWith('video/'));
-            document.getElementById('videoProcessingInfo').style.display = hasVideo ? 'block' : 'none';
+            document.getElementById('videoOptions').style.display = hasVideo ? 'block' : 'none';
         }
 
         function updatePreview() {
@@ -1263,7 +1309,7 @@
                 // Настраиваем текст
                 const fontSize = Math.max(12, watermarkWidth * 0.15);
                 ctx.font = `bold ${fontSize}px Arial`;
-                ctx.fillStyle = watermark.textColor || '#000000';
+                ctx.fillStyle = watermark.textColor || '#FFFFFF';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
@@ -1273,6 +1319,11 @@
                     ctx.shadowBlur = 10;
                     ctx.shadowOffsetX = 2;
                     ctx.shadowOffsetY = 2;
+                } else if (watermark.style === 'outline') {
+                    // Рисуем обводку
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(watermark.content, 0, 0);
                 } else if (watermark.style === 'background') {
                     // Измеряем текст
                     const textMetrics = ctx.measureText(watermark.content);
@@ -1280,15 +1331,10 @@
                     const textHeight = fontSize * 1.2;
                     
                     // Рисуем фон
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                     ctx.fillRect(-textWidth/2 - 10, -textHeight/2 - 5, textWidth + 20, textHeight + 10);
                     
-                    ctx.fillStyle = watermark.textColor || '#000000';
-                } else if (watermark.style === 'border') {
-                    // Рисуем обводку
-                    ctx.strokeStyle = 'white';
-                    ctx.lineWidth = 3;
-                    ctx.strokeText(watermark.content, 0, 0);
+                    ctx.fillStyle = watermark.textColor || '#FFFFFF';
                 }
                 
                 // Рисуем текст
@@ -1321,7 +1367,6 @@
                     ctx.restore();
                 };
                 img.onerror = function() {
-                    console.error('Не удалось загрузить изображение водяного знака');
                     // Fallback на текст
                     ctx.font = `bold ${Math.max(12, watermarkWidth * 0.15)}px Arial`;
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
@@ -1372,7 +1417,12 @@
                     if (file.type.startsWith('image/')) {
                         await processImage(file);
                     } else if (file.type.startsWith('video/')) {
-                        await processVideo(file);
+                        const processFullVideo = document.getElementById('processFullVideo').checked;
+                        if (processFullVideo) {
+                            await processVideoFull(file);
+                        } else {
+                            await processVideoScreenshot(file);
+                        }
                     }
                     
                     processed++;
@@ -1422,16 +1472,16 @@
             });
         }
 
-        async function processVideo(file) {
+        async function processVideoScreenshot(file) {
             return new Promise((resolve, reject) => {
-                showLoading(true, `Обработка видео: ${file.name}`, 'Извлекаем кадр...');
+                showLoading(true, `Обработка видео: ${file.name}`, 'Создаем скриншот...');
                 
                 const video = document.createElement('video');
                 video.muted = true;
                 video.playsInline = true;
                 
                 video.onloadeddata = function() {
-                    // Берем кадр из середины видео для лучшего результата
+                    // Берем кадр из середины видео
                     video.currentTime = Math.min(video.duration / 2, 5);
                 };
                 
@@ -1466,6 +1516,125 @@
             });
         }
 
+        async function processVideoFull(file) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    showLoading(true, `Обработка видео: ${file.name}`, 'Это может занять некоторое время...');
+                    
+                    const video = document.createElement('video');
+                    video.muted = true;
+                    video.playsInline = true;
+                    
+                    // Ждем загрузки метаданных
+                    await new Promise((resolveLoad, rejectLoad) => {
+                        video.onloadedmetadata = resolveLoad;
+                        video.onerror = rejectLoad;
+                        video.src = URL.createObjectURL(file);
+                    });
+                    
+                    const duration = video.duration;
+                    const fps = parseInt(document.getElementById('videoFPS').value);
+                    const quality = parseFloat(document.getElementById('videoQuality').value);
+                    
+                    if (duration > 60) {
+                        showAlert('Видео слишком длинное. Рекомендуется обрабатывать видео до 1 минуты.', 'warning');
+                    }
+                    
+                    // Создаем canvas для обработки
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    // Создаем MediaRecorder для записи
+                    const stream = canvas.captureStream(fps);
+                    const mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'video/webm;codecs=vp9',
+                        videoBitsPerSecond: 2500000
+                    });
+                    
+                    const chunks = [];
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            chunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        const url = URL.createObjectURL(blob);
+                        downloadFile(url, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}_watermarked.webm`);
+                        URL.revokeObjectURL(video.src);
+                        showLoading(false);
+                        resolve();
+                    };
+                    
+                    mediaRecorder.onerror = (error) => {
+                        reject(new Error('Ошибка записи видео: ' + error));
+                        URL.revokeObjectURL(video.src);
+                    };
+                    
+                    // Начинаем запись
+                    mediaRecorder.start();
+                    
+                    // Обрабатываем каждый кадр
+                    let currentTime = 0;
+                    const timeStep = 1 / fps;
+                    
+                    const processFrame = async () => {
+                        if (currentTime >= duration) {
+                            mediaRecorder.stop();
+                            return;
+                        }
+                        
+                        // Обновляем прогресс
+                        const progressPercent = Math.min(100, (currentTime / duration) * 100);
+                        document.getElementById('videoProgress').textContent = `Прогресс: ${progressPercent.toFixed(1)}%`;
+                        
+                        // Устанавливаем время видео
+                        video.currentTime = currentTime;
+                        
+                        await new Promise((resolveFrame) => {
+                            video.onseeked = () => {
+                                // Очищаем canvas
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Рисуем кадр
+                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                
+                                // Накладываем водяной знак
+                                applyWatermarkToCanvas(ctx, canvas.width, canvas.height, appState.selectedWatermark);
+                                
+                                // Переходим к следующему кадру
+                                currentTime += timeStep;
+                                resolveFrame();
+                            };
+                        });
+                        
+                        // Используем requestAnimationFrame для следующего кадра
+                        requestAnimationFrame(processFrame);
+                    };
+                    
+                    // Запускаем обработку
+                    processFrame();
+                    
+                } catch (error) {
+                    console.error('Ошибка обработки видео:', error);
+                    showLoading(false);
+                    
+                    // Если не удалось обработать полностью, пробуем создать скриншот
+                    showAlert('Не удалось обработать видео полностью. Создаем скриншот...', 'warning');
+                    try {
+                        await processVideoScreenshot(file);
+                        resolve();
+                    } catch (screenshotError) {
+                        reject(screenshotError);
+                    }
+                }
+            });
+        }
+
         function downloadFile(dataUrl, filename) {
             try {
                 const link = document.createElement('a');
@@ -1474,6 +1643,11 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                
+                // Если это blob URL, освобождаем его
+                if (dataUrl.startsWith('blob:')) {
+                    setTimeout(() => URL.revokeObjectURL(dataUrl), 1000);
+                }
                 
                 console.log('Файл скачан:', filename);
             } catch (error) {
@@ -1486,11 +1660,13 @@
             const overlay = document.getElementById('loadingOverlay');
             const loadingText = document.getElementById('loadingText');
             const loadingDetails = document.getElementById('loadingDetails');
+            const videoProgress = document.getElementById('videoProgress');
             
             if (show) {
                 overlay.style.display = 'flex';
                 loadingText.textContent = text;
                 loadingDetails.textContent = details;
+                videoProgress.textContent = '';
             } else {
                 overlay.style.display = 'none';
             }
