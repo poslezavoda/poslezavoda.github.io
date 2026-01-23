@@ -5,1268 +5,258 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Водяные знаки для фото и видео</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Добавляем ffmpeg.wasm -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #ffffff;
-            color: #212529;
-            height: 100vh;
-            overflow-x: hidden;
-        }
-        
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 16px;
-            min-height: 100vh;
-        }
-        
-        .app-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 0;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .app-header h1 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #000;
-        }
-        
-        .btn-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: #6c757d;
-            cursor: pointer;
-            padding: 0 8px;
-        }
-        
-        .section {
-            display: none;
-        }
-        
-        .section.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .button-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin: 24px 0;
-        }
-        
-        .btn-large {
-            background: #ffffff;
-            border: 2px solid #007bff;
-            color: #007bff;
+        /* ... существующие стили ... */
+        .ffmpeg-loading {
+            text-align: center;
             padding: 20px;
-            border-radius: 12px;
-            font-size: 17px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-        
-        .btn-large:hover {
-            background: #007bff;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
-        }
-        
-        .btn-primary {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 16px 24px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s;
-            width: 100%;
-        }
-        
-        .btn-primary:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-        }
-        
-        .btn-secondary {
-            background: #e9ecef;
-            color: #495057;
-            border: 1px solid #ced4da;
-            padding: 16px 24px;
-            border-radius: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-        }
-        
-        .button-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #495057;
-        }
-        
-        .form-group input[type="text"],
-        .form-group select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
-        }
-        
-        .toggle-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        
-        .toggle-btn {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ced4da;
-            background: #e9ecef;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-        }
-        
-        .toggle-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        
-        .position-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin: 16px 0;
-        }
-        
-        .position-btn {
-            aspect-ratio: 1;
-            border: 1px solid #ced4da;
-            background: #e9ecef;
-            border-radius: 8px;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .position-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        
-        .preview-container {
-            margin: 20px 0;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            overflow: hidden;
-            background: white;
-            min-height: 200px;
-            position: relative;
-        }
-        
-        canvas {
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        .media-preview {
-            margin: 16px 0;
-        }
-        
-        .media-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        
-        .media-preview-img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-        
-        .progress-container {
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .progress-bar {
-            height: 8px;
-            background: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: #28a745;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin: 16px 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .watermark-item {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
-        }
-        
-        .watermark-info {
-            margin-bottom: 8px;
-        }
-        
-        .watermark-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        
-        .action-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .file-input-label {
-            display: block;
-            padding: 16px;
-            background: #e9ecef;
-            border: 2px dashed #ced4da;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            margin: 10px 0;
-        }
-        
-        .file-input-label:hover {
-            background: #dee2e6;
-        }
-        
-        h2 {
-            margin: 20px 0 16px 0;
-            color: #000;
-            font-size: 18px;
-        }
-        
-        .watermark-preview {
-            width: 100%;
-            max-height: 300px;
-            object-fit: contain;
-            border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid #dee2e6;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #6c757d;
-        }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-        
-        .video-processing-info {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 14px;
-        }
-        
-        .video-option {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 10px 0;
-        }
-        
-        .video-option input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-        }
-        
-        .color-picker {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-top: 10px;
-        }
-        
-        .color-input {
-            width: 60px;
-            height: 40px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        
-        .font-size-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .font-size-control input {
-            flex: 1;
-        }
-        
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            display: none;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #007bff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .video-settings {
             background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .quality-controls {
+            background: #e7f3ff;
             padding: 15px;
             border-radius: 8px;
             margin: 15px 0;
-            border: 1px solid #dee2e6;
-        }
-        
-        .setting-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 10px 0;
-        }
-        
-        .setting-row label {
-            font-weight: 500;
-        }
-        
-        .setting-row select,
-        .setting-row input[type="number"] {
-            width: 120px;
-            padding: 8px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-        }
-        
-        .video-format-warning {
-            background: #e7f3ff;
             border: 1px solid #b3d7ff;
-            color: #004085;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 10px;
-            font-size: 13px;
+        }
+        
+        .quality-slider {
+            width: 100%;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="app-header">
-            <h1>💧 Водяные знаки</h1>
-            <button id="closeApp" class="btn-close">✕</button>
-        </header>
-
-        <div id="appContent">
-            <!-- Главное меню -->
-            <div id="mainMenu" class="section active">
-                <div class="button-grid">
-                    <button class="btn-large" onclick="showSection('createWatermark')">
-                        🆕 Создать водяной знак
-                    </button>
-                    <button class="btn-large" onclick="showSection('myWatermarks')">
-                        📁 Мои водяные знаки
-                    </button>
-                    <button class="btn-large" onclick="showSection('applyWatermark')">
-                        📤 Применить к медиа
-                    </button>
-                </div>
-                <div class="alert alert-info">
-                    ⚡ Все файлы обрабатываются на вашем устройстве
-                </div>
-            </div>
-
-            <!-- Создание водяного знака -->
-            <div id="createWatermark" class="section">
-                <h2>Создать водяной знак</h2>
-                
-                <div class="form-group">
-                    <label>Тип водяного знака:</label>
-                    <div class="toggle-group">
-                        <button class="toggle-btn active" onclick="setWatermarkType('text')">✏️ Текст</button>
-                        <button class="toggle-btn" onclick="setWatermarkType('image')">🖼️ Изображение</button>
-                    </div>
-                </div>
-
-                <div id="textSection" class="form-group">
-                    <label>Текст водяного знака:</label>
-                    <input type="text" id="watermarkText" placeholder="Например: © My Channel" maxlength="50" value="@mychannel">
-                    
-                    <label style="margin-top: 15px;">Цвет текста:</label>
-                    <div class="color-picker">
-                        <input type="color" id="textColor" value="#FFFFFF" class="color-input">
-                        <span id="textColorValue">#FFFFFF</span>
-                    </div>
-                    
-                    <label style="margin-top: 15px;">Размер шрифта:</label>
-                    <div class="font-size-control">
-                        <input type="range" id="fontSize" min="12" max="72" value="36" oninput="updateFontSizeValue()">
-                        <span id="fontSizeValue">36px</span>
-                    </div>
-                    
-                    <div style="margin-top: 10px;">
-                        <label>
-                            <input type="checkbox" id="textShadow" checked> Добавить тень для лучшей видимости
-                        </label>
-                    </div>
-                </div>
-
-                <div id="imageSection" class="form-group" style="display: none;">
-                    <label>Изображение водяного знака:</label>
-                    <label class="file-input-label" onclick="document.getElementById('watermarkImageFile').click()">
-                        📁 Выбрать изображение (PNG с прозрачностью)
-                    </label>
-                    <input type="file" id="watermarkImageFile" accept="image/*" style="display: none;">
-                    <div id="imagePreview"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Размер (относительно медиа):</label>
-                    <select id="watermarkSize">
-                        <option value="10">Маленький (10%)</option>
-                        <option value="15" selected>Средний (15%)</option>
-                        <option value="20">Большой (20%)</option>
-                        <option value="25">Очень большой (25%)</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Позиция:</label>
-                    <div class="position-grid">
-                        <button class="position-btn" onclick="setPosition('top-left')">↖️</button>
-                        <button class="position-btn" onclick="setPosition('top-center')">⬆️</button>
-                        <button class="position-btn" onclick="setPosition('top-right')">↗️</button>
-                        <button class="position-btn" onclick="setPosition('center-left')">⬅️</button>
-                        <button class="position-btn" onclick="setPosition('center')">⏺️</button>
-                        <button class="position-btn" onclick="setPosition('center-right')">➡️</button>
-                        <button class="position-btn" onclick="setPosition('bottom-left')">↙️</button>
-                        <button class="position-btn" onclick="setPosition('bottom-center')">⬇️</button>
-                        <button class="position-btn active" onclick="setPosition('bottom-right')">↘️</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Прозрачность: <span id="opacityValue">70%</span></label>
-                    <input type="range" id="opacitySlider" min="10" max="100" value="70" oninput="updateOpacityValue()">
-                </div>
-
-                <div class="form-group">
-                    <label>Отступ от края: <span id="marginValue">20px</span></label>
-                    <input type="range" id="marginSlider" min="0" max="50" value="20" oninput="updateMarginValue()">
-                </div>
-
-                <div class="button-row">
-                    <button class="btn-secondary" onclick="showSection('mainMenu')">Назад</button>
-                    <button class="btn-primary" onclick="saveWatermark()">💾 Сохранить водяной знак</button>
-                </div>
-            </div>
-
-            <!-- Применение водяного знака -->
-            <div id="applyWatermark" class="section">
-                <h2>Применить водяной знак</h2>
-                
-                <div class="form-group">
-                    <label>Выберите водяной знак:</label>
-                    <select id="selectWatermark" onchange="selectWatermark(this.value)">
-                        <option value="">-- Выберите водяной знак --</option>
-                    </select>
-                </div>
-
-                <div id="selectedWatermarkInfo" style="display: none;">
-                    <div class="alert alert-info" id="watermarkInfo">
-                        <!-- Информация о выбранном водяном знаке -->
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Загрузите медиафайлы:</label>
-                    <label class="file-input-label" onclick="document.getElementById('mediaFiles').click()">
-                        📁 Выбрать фото или видео (до 2 файлов)
-                    </label>
-                    <input type="file" id="mediaFiles" multiple accept="image/*,video/*" style="display: none;" onchange="handleMediaFiles(this.files)">
-                    <div id="mediaPreview" class="media-preview"></div>
-                </div>
-
-                <div id="videoOptions" class="video-settings" style="display: none;">
-                    <h3 style="font-size: 16px; margin-bottom: 15px;">🎬 Настройки обработки видео</h3>
-                    
-                    <div class="video-option">
-                        <input type="checkbox" id="processFullVideo" checked>
-                        <label for="processFullVideo"><strong>Обработать видео полностью</strong></label>
-                    </div>
-                    
-                    <div class="setting-row">
-                        <label>Сохранить исходный FPS:</label>
-                        <input type="checkbox" id="keepOriginalFPS" checked>
-                    </div>
-                    
-                    <div class="setting-row">
-                        <label>Сохранить качество:</label>
-                        <select id="qualityPreset">
-                            <option value="original">Исходное качество</option>
-                            <option value="high">Высокое</option>
-                            <option value="medium">Среднее</option>
-                            <option value="low">Низкое (для быстрой обработки)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="video-format-warning">
-                        ✅ Видео будет сохранено с максимально возможным сохранением исходных параметров
-                    </div>
-                    
-                    <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 13px;">
-                        ⚠️ Для сохранения качества обработка может занять больше времени.
-                        Рекомендуется обрабатывать видео до 2 минут для стабильной работы.
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Предпросмотр:</label>
-                    <div class="preview-container">
-                        <div id="previewPlaceholder" style="display: flex; align-items: center; justify-content: center; height: 200px; color: #6c757d;">
-                            Выберите файл для предпросмотра
-                        </div>
-                        <canvas id="previewCanvas" style="display: none;"></canvas>
-                    </div>
-                    <button class="btn-secondary" onclick="updatePreview()" style="margin-top: 10px;">🔄 Обновить превью</button>
-                </div>
-
-                <div class="progress-container" id="progressContainer">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-text">
-                        Обработка: <span id="progressPercent">0%</span>
-                        <span id="progressDetails" style="margin-left: 10px; font-size: 12px; color: #6c757d;"></span>
-                    </div>
-                </div>
-
-                <div class="button-row">
-                    <button class="btn-secondary" onclick="showSection('mainMenu')">Назад</button>
-                    <button class="btn-primary" onclick="processAllMedia()" id="processBtn">
-                        🚀 Начать обработку
-                    </button>
-                </div>
-            </div>
-
-            <!-- Мои водяные знаки -->
-            <div id="myWatermarks" class="section">
-                <h2>Мои водяные знаки</h2>
-                <div id="watermarksList"></div>
-                <div class="button-row">
-                    <button class="btn-secondary" onclick="showSection('mainMenu')">Назад</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div id="loadingText">Обработка...</div>
-        <div id="loadingDetails" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
-        <div id="videoProgress" style="margin-top: 10px; font-size: 12px; color: #888;"></div>
-    </div>
+    <!-- ... существующий HTML ... -->
 
     <script>
-        // Telegram Web App API
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
-
-        // Состояние приложения
-        let appState = {
-            watermarks: [],
-            selectedWatermark: null,
-            mediaFiles: [],
-            watermarkType: 'text',
-            watermarkPosition: 'bottom-right',
-            watermarkOpacity: 70,
-            watermarkMargin: 20,
-            textColor: '#FFFFFF',
-            fontSize: 36,
-            hasTextShadow: true,
-            qualityPreset: 'original',
-            keepOriginalFPS: true
-        };
-
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Мини-приложение водяных знаков запущено');
-            
-            // Загружаем сохраненные водяные знаки
-            loadWatermarks();
-            
-            // Настраиваем кнопку закрытия
-            document.getElementById('closeApp').addEventListener('click', function() {
-                tg.close();
-            });
-            
-            // Настраиваем загрузку изображения для водяного знака
-            document.getElementById('watermarkImageFile').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    if (!file.type.startsWith('image/')) {
-                        showAlert('Пожалуйста, выберите файл изображения', 'error');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const preview = document.getElementById('imagePreview');
-                        preview.innerHTML = `
-                            <img src="${event.target.result}" class="watermark-preview" alt="Предпросмотр">
-                            <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
-                                Размер: ${(file.size / 1024).toFixed(1)} КБ
-                            </div>
-                        `;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            document.getElementById('keepOriginalFPS').addEventListener('change', function(e) {
-                appState.keepOriginalFPS = e.target.checked;
-            });
-
-            document.getElementById('qualityPreset').addEventListener('change', function(e) {
-                appState.qualityPreset = e.target.value;
-            });
-            // Настраиваем цвет текста
-            document.getElementById('textColor').addEventListener('input', function(e) {
-                appState.textColor = e.target.value;
-                document.getElementById('textColorValue').textContent = e.target.value;
-            });
-            
-            // Настраиваем тень текста
-            document.getElementById('textShadow').addEventListener('change', function(e) {
-                appState.hasTextShadow = e.target.checked;
-            });
-            
-            // Обновляем значения
-            updateOpacityValue();
-            updateMarginValue();
-            updateFontSizeValue();
-            
-            // Добавляем тестовый водяной знак по умолчанию
-            addDefaultWatermark();
-        });
-
-        // Функции управления интерфейсом
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            document.getElementById(sectionId).classList.add('active');
-            
-            if (sectionId === 'applyWatermark') {
-                loadWatermarksList();
-                updateWatermarkSelect();
+        // Инициализируем FFmpeg
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+        
+        async function loadFFmpeg() {
+            if (!ffmpeg) {
+                ffmpeg = createFFmpeg({
+                    log: true,
+                    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+                    wasmPath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm'
+                });
             }
             
-            if (sectionId === 'myWatermarks') {
-                loadWatermarksList();
+            if (!ffmpeg.isLoaded()) {
+                showLoading(true, 'Загрузка видеопроцессора...', 'Это займет несколько секунд');
+                await ffmpeg.load();
+                ffmpegLoaded = true;
+                showLoading(false);
             }
+            return ffmpeg;
         }
 
-        function setWatermarkType(type) {
-            appState.watermarkType = type;
+        // Полностью переписываем функцию обработки видео
+        async function processVideoWithFFmpeg(file) {
+            showLoading(true, `Обработка видео: ${file.name}`, 'Загрузка видеопроцессора...');
             
-            document.querySelectorAll('.toggle-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            document.getElementById('textSection').style.display = type === 'text' ? 'block' : 'none';
-            document.getElementById('imageSection').style.display = type === 'image' ? 'block' : 'none';
-        }
-
-        function setPosition(position) {
-            appState.watermarkPosition = position;
-            
-            document.querySelectorAll('.position-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-        }
-
-        function updateOpacityValue() {
-            const opacity = document.getElementById('opacitySlider').value;
-            appState.watermarkOpacity = parseInt(opacity);
-            document.getElementById('opacityValue').textContent = opacity + '%';
-        }
-
-        function updateMarginValue() {
-            const margin = document.getElementById('marginSlider').value;
-            appState.watermarkMargin = parseInt(margin);
-            document.getElementById('marginValue').textContent = margin + 'px';
-        }
-
-        function updateFontSizeValue() {
-            const size = document.getElementById('fontSize').value;
-            appState.fontSize = parseInt(size);
-            document.getElementById('fontSizeValue').textContent = size + 'px';
-        }
-
-        // Добавление тестового водяного знака по умолчанию
-        function addDefaultWatermark() {
-            const defaultWatermark = {
-                id: 1,
-                name: 'Пример: @mychannel',
-                type: 'text',
-                content: '@mychannel',
-                size: '15',
-                position: 'bottom-right',
-                opacity: 70,
-                margin: 20,
-                textColor: '#FFFFFF',
-                fontSize: 36,
-                hasTextShadow: true,
-                created: new Date().toISOString()
-            };
-            
-            let watermarks = JSON.parse(localStorage.getItem('watermarks') || '[]');
-            
-            if (!watermarks.some(w => w.id === 1)) {
-                watermarks.push(defaultWatermark);
-                localStorage.setItem('watermarks', JSON.stringify(watermarks));
-                appState.watermarks = watermarks;
-            }
-        }
-
-        // Работа с водяными знаками
-        function saveWatermark() {
-            const name = prompt('Введите название водяного знака:', 'Мой водяной знак') || 'Водяной знак';
-            const size = document.getElementById('watermarkSize').value;
-            const type = appState.watermarkType;
-            const position = appState.watermarkPosition;
-            const opacity = appState.watermarkOpacity;
-            const margin = appState.watermarkMargin;
-            const textColor = appState.textColor;
-            const fontSize = appState.fontSize;
-            const hasTextShadow = appState.hasTextShadow;
-            
-            let content = '';
-            
-            if (type === 'text') {
-                const text = document.getElementById('watermarkText').value.trim();
-                if (!text) {
-                    showAlert('Введите текст для водяного знака', 'error');
-                    return;
-                }
-                content = text;
-                createWatermarkObject(name, type, content, size, position, opacity, margin, textColor, fontSize, hasTextShadow);
-            } else {
-                const fileInput = document.getElementById('watermarkImageFile');
-                if (!fileInput.files[0]) {
-                    showAlert('Выберите изображение для водяного знака', 'error');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    content = event.target.result;
-                    createWatermarkObject(name, type, content, size, position, opacity, margin, null, null, hasTextShadow);
-                };
-                reader.readAsDataURL(fileInput.files[0]);
-            }
-        }
-
-        function createWatermarkObject(name, type, content, size, position, opacity, margin, textColor, fontSize, hasTextShadow) {
-            const watermark = {
-                id: Date.now(),
-                name: name,
-                type: type,
-                content: content,
-                size: size,
-                position: position,
-                opacity: opacity,
-                margin: margin,
-                textColor: textColor || '#FFFFFF',
-                fontSize: fontSize || 36,
-                hasTextShadow: hasTextShadow !== undefined ? hasTextShadow : true,
-                created: new Date().toISOString()
-            };
-            
-            let watermarks = JSON.parse(localStorage.getItem('watermarks') || '[]');
-            watermarks.push(watermark);
-            localStorage.setItem('watermarks', JSON.stringify(watermarks));
-            
-            showAlert('Водяной знак успешно сохранен!', 'success');
-            showSection('mainMenu');
-            loadWatermarks();
-        }
-
-        function loadWatermarks() {
             try {
-                const saved = localStorage.getItem('watermarks');
-                appState.watermarks = saved ? JSON.parse(saved) : [];
-            } catch (e) {
-                console.error('Ошибка загрузки водяных знаков:', e);
-                appState.watermarks = [];
-            }
-        }
-
-        function loadWatermarksList() {
-            const list = document.getElementById('watermarksList');
-            loadWatermarks();
-            
-            if (appState.watermarks.length === 0) {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <p>У вас нет сохраненных водяных знаков</p>
-                        <button class="btn-secondary" onclick="showSection('createWatermark')" style="margin-top: 16px;">
-                            Создать первый водяной знак
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-            
-            list.innerHTML = '';
-            appState.watermarks.forEach(watermark => {
-                const item = document.createElement('div');
-                item.className = 'watermark-item';
-                item.innerHTML = `
-                    <div class="watermark-info">
-                        <strong>${watermark.name}</strong>
-                        <div style="font-size: 14px; color: #6c757d; margin-top: 4px;">
-                            Тип: ${watermark.type === 'text' ? 'Текст' : 'Изображение'} | 
-                            Размер: ${watermark.size}% | 
-                            Позиция: ${getPositionName(watermark.position)}
-                        </div>
-                    </div>
-                    <div class="watermark-actions">
-                        <button class="action-btn" onclick="deleteWatermark(${watermark.id})">Удалить</button>
-                        <button class="action-btn" onclick="useWatermark(${watermark.id})" style="background: #007bff;">Использовать</button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        function getPositionName(position) {
-            const positions = {
-                'top-left': 'Сверху слева',
-                'top-center': 'Сверху по центру',
-                'top-right': 'Сверху справа',
-                'center-left': 'По центру слева',
-                'center': 'По центру',
-                'center-right': 'По центру справа',
-                'bottom-left': 'Снизу слева',
-                'bottom-center': 'Снизу по центру',
-                'bottom-right': 'Снизу справа'
-            };
-            return positions[position] || position;
-        }
-
-        function updateWatermarkSelect() {
-            const select = document.getElementById('selectWatermark');
-            select.innerHTML = '<option value="">-- Выберите водяной знак --</option>';
-            
-            appState.watermarks.forEach(watermark => {
-                const option = document.createElement('option');
-                option.value = watermark.id;
-                option.textContent = `${watermark.name} (${watermark.type === 'text' ? 'Текст' : 'Изображение'})`;
-                select.appendChild(option);
-            });
-        }
-
-        function selectWatermark(id) {
-            const watermark = appState.watermarks.find(w => w.id === parseInt(id));
-            if (watermark) {
-                appState.selectedWatermark = watermark;
-                document.getElementById('selectedWatermarkInfo').style.display = 'block';
-                document.getElementById('watermarkInfo').innerHTML = `
-                    <strong>Выбран:</strong> ${watermark.name}<br>
-                    <small>Тип: ${watermark.type === 'text' ? 'Текст' : 'Изображение'}, 
-                    Размер: ${watermark.size}%, 
-                    Позиция: ${getPositionName(watermark.position)}, 
-                    Прозрачность: ${watermark.opacity}%</small>
-                `;
-                updatePreview();
-            }
-        }
-
-        function useWatermark(id) {
-            selectWatermark(id);
-            showSection('applyWatermark');
-        }
-
-        function deleteWatermark(id) {
-            if (confirm('Удалить этот водяной знак?')) {
-                let watermarks = JSON.parse(localStorage.getItem('watermarks') || '[]');
-                watermarks = watermarks.filter(w => w.id !== id);
-                localStorage.setItem('watermarks', JSON.stringify(watermarks));
-                loadWatermarksList();
-                updateWatermarkSelect();
-                showAlert('Водяной знак удален', 'success');
-            }
-        }
-
-        // Работа с медиафайлами
-        function handleMediaFiles(files) {
-            const maxFiles = 2; // Уменьшено для стабильности
-            if (files.length > maxFiles) {
-                showAlert(`Максимальное количество файлов: ${maxFiles}. Будут обработаны первые ${maxFiles} файлов.`, 'info');
-                files = Array.from(files).slice(0, maxFiles);
-            }
-            
-            appState.mediaFiles = Array.from(files);
-            updateMediaPreview();
-            
-            const hasVideo = appState.mediaFiles.some(file => file.type.startsWith('video/'));
-            document.getElementById('videoOptions').style.display = hasVideo ? 'block' : 'none';
-            
-            if (files.length > 0 && appState.selectedWatermark) {
-                updatePreview();
-            }
-        }
-
-        function updateMediaPreview() {
-            const preview = document.getElementById('mediaPreview');
-            
-            if (appState.mediaFiles.length === 0) {
-                preview.innerHTML = '<div class="alert alert-info">Файлы не выбраны</div>';
-                return;
-            }
-            
-            preview.innerHTML = `<div style="margin-bottom: 10px;">Выбрано файлов: ${appState.mediaFiles.length}</div>`;
-            
-            appState.mediaFiles.forEach((file, index) => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const div = document.createElement('div');
-                        div.className = 'media-item';
-                        div.innerHTML = `
-                            <img src="${event.target.result}" class="media-preview-img" alt="Предпросмотр">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 500;">${file.name}</div>
-                                <div style="font-size: 12px; color: #6c757d;">
-                                    ${(file.size / 1024).toFixed(1)} КБ • Изображение
-                                </div>
-                            </div>
-                            <button class="action-btn" onclick="removeMediaFile(${index})" style="background: #dc3545;">Удалить</button>
-                        `;
-                        preview.appendChild(div);
-                    };
-                    reader.readAsDataURL(file);
-                } else if (file.type.startsWith('video/')) {
-                    const div = document.createElement('div');
-                    div.className = 'media-item';
-                    div.innerHTML = `
-                        <div style="width: 60px; height: 60px; background: #007bff; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
-                            🎬
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 500;">${file.name}</div>
-                            <div style="font-size: 12px; color: #6c757d;">
-                                ${(file.size / (1024 * 1024)).toFixed(2)} МБ • Видео
-                            </div>
-                        </div>
-                        <button class="action-btn" onclick="removeMediaFile(${index})" style="background: #dc3545;">Удалить</button>
-                    `;
-                    preview.appendChild(div);
+                // Загружаем FFmpeg если еще не загружен
+                await loadFFmpeg();
+                
+                showLoading(true, `Обработка видео: ${file.name}`, 'Считывание метаданных...');
+                
+                // Получаем информацию о видео через временный элемент
+                const videoInfo = await getVideoInfo(file);
+                console.log('Информация о видео:', videoInfo);
+                
+                // Создаем временный canvas для водяного знака
+                const watermarkCanvas = document.createElement('canvas');
+                const watermarkCtx = watermarkCanvas.getContext('2d');
+                watermarkCanvas.width = videoInfo.width;
+                watermarkCanvas.height = videoInfo.height;
+                
+                // Рисуем водяной знак на canvas
+                applyWatermarkToCanvas(watermarkCtx, videoInfo.width, videoInfo.height, appState.selectedWatermark);
+                
+                // Конвертируем canvas в PNG для использования в FFmpeg
+                const watermarkDataURL = watermarkCanvas.toDataURL('image/png');
+                const watermarkBlob = dataURLtoBlob(watermarkDataURL);
+                
+                showLoading(true, `Обработка видео: ${file.name}`, 'Подготовка файлов...');
+                
+                // Записываем файлы в виртуальную файловую систему FFmpeg
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+                ffmpeg.FS('writeFile', 'watermark.png', await fetchFile(watermarkBlob));
+                
+                // Определяем параметры кодирования на основе исходного видео
+                const bitrate = Math.min(50000000, Math.max(2000000, (file.size * 8) / videoInfo.duration));
+                const targetBitrate = Math.round(bitrate / 1000) + 'k';
+                
+                // Строим команду FFmpeg для сохранения качества
+                const command = [
+                    '-i', 'input.mp4',
+                    '-i', 'watermark.png',
+                    '-filter_complex', `[0:v][1:v]overlay=${getFFmpegPosition(videoInfo.width, videoInfo.height, appState.selectedWatermark)}:format=auto,format=yuv420p`,
+                    '-c:v', 'libx264',
+                    '-preset', 'medium', // Измените на 'ultrafast' для скорости или 'slow' для качества
+                    '-crf', '18', // От 0 (без потерь) до 51 (худшее качество). 18-23 - хороший баланс
+                    '-b:v', targetBitrate,
+                    '-maxrate', targetBitrate,
+                    '-bufsize', Math.round(parseInt(targetBitrate) * 2) + 'k',
+                    '-r', videoInfo.fps.toString(), // Сохраняем оригинальный FPS
+                    '-c:a', 'copy', // Копируем аудио без перекодировки
+                    '-movflags', '+faststart',
+                    '-y', // Перезаписывать выходной файл
+                    'output.mp4'
+                ];
+                
+                console.log('Запускаем FFmpeg с командой:', command);
+                
+                // Запускаем FFmpeg
+                await ffmpeg.run(...command);
+                
+                showLoading(true, `Обработка видео: ${file.name}`, 'Сохранение результата...');
+                
+                // Читаем результат
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                
+                // Создаем blob для скачивания
+                const resultBlob = new Blob([data.buffer], { type: 'video/mp4' });
+                const resultUrl = URL.createObjectURL(resultBlob);
+                
+                // Скачиваем файл
+                downloadFile(resultUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.mp4`);
+                
+                // Очищаем память
+                ffmpeg.FS('unlink', 'input.mp4');
+                ffmpeg.FS('unlink', 'watermark.png');
+                ffmpeg.FS('unlink', 'output.mp4');
+                
+                showLoading(false);
+                return true;
+                
+            } catch (error) {
+                console.error('FFmpeg ошибка:', error);
+                showLoading(false);
+                
+                // Fallback на старый метод если FFmpeg не сработал
+                showAlert('Используем упрощенную обработку...', 'warning');
+                try {
+                    await processVideoScreenshot(file);
+                    return true;
+                } catch (screenshotError) {
+                    throw new Error(`Не удалось обработать видео: ${error.message}`);
                 }
-            });
-        }
-
-        function removeMediaFile(index) {
-            appState.mediaFiles.splice(index, 1);
-            updateMediaPreview();
-            
-            const hasVideo = appState.mediaFiles.some(file => file.type.startsWith('video/'));
-            document.getElementById('videoOptions').style.display = hasVideo ? 'block' : 'none';
-        }
-
-        function updatePreview() {
-            if (!appState.selectedWatermark || appState.mediaFiles.length === 0) {
-                document.getElementById('previewPlaceholder').style.display = 'flex';
-                document.getElementById('previewCanvas').style.display = 'none';
-                return;
-            }
-            
-            const canvas = document.getElementById('previewCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            const firstFile = appState.mediaFiles[0];
-            if (!firstFile) return;
-            
-            if (firstFile.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const maxWidth = 800;
-                        const maxHeight = 600;
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        if (width > maxWidth) {
-                            height = (maxWidth / width) * height;
-                            width = maxWidth;
-                        }
-                        
-                        if (height > maxHeight) {
-                            width = (maxHeight / height) * width;
-                            height = maxHeight;
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Накладываем водяной знак
-                        applyWatermarkToCanvas(ctx, width, height, appState.selectedWatermark);
-                        
-                        document.getElementById('previewPlaceholder').style.display = 'none';
-                        canvas.style.display = 'block';
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(firstFile);
             }
         }
 
-        function applyWatermarkToCanvas(ctx, width, height, watermark) {
-            if (!watermark) return;
-            
-            // Вычисляем размер водяного знака
+        // Вспомогательные функции для FFmpeg
+        function getFFmpegPosition(videoWidth, videoHeight, watermark) {
             const sizePercent = parseInt(watermark.size) / 100;
-            let watermarkWidth = width * sizePercent;
-            let watermarkHeight = watermarkWidth;
-            
-            // Вычисляем позицию с учетом отступа
+            const watermarkWidth = videoWidth * sizePercent;
+            const watermarkHeight = watermarkWidth;
             const margin = watermark.margin || 20;
+            
             let x, y;
             
             switch (watermark.position) {
                 case 'top-left':
-                    x = margin;
-                    y = margin;
+                    x = `W*${margin/1000}:H*${margin/1000}`;
                     break;
                 case 'top-center':
-                    x = (width - watermarkWidth) / 2;
-                    y = margin;
+                    x = `(W-w)/2`;
+                    y = `H*${margin/1000}`;
                     break;
                 case 'top-right':
-                    x = width - watermarkWidth - margin;
-                    y = margin;
+                    x = `W-w-${margin}`;
+                    y = `${margin}`;
                     break;
                 case 'center-left':
-                    x = margin;
-                    y = (height - watermarkHeight) / 2;
+                    x = `${margin}`;
+                    y = `(H-h)/2`;
                     break;
                 case 'center':
-                    x = (width - watermarkWidth) / 2;
-                    y = (height - watermarkHeight) / 2;
+                    x = `(W-w)/2`;
+                    y = `(H-h)/2`;
                     break;
                 case 'center-right':
-                    x = width - watermarkWidth - margin;
-                    y = (height - watermarkHeight) / 2;
+                    x = `W-w-${margin}`;
+                    y = `(H-h)/2`;
                     break;
                 case 'bottom-left':
-                    x = margin;
-                    y = height - watermarkHeight - margin;
+                    x = `${margin}`;
+                    y = `H-h-${margin}`;
                     break;
                 case 'bottom-center':
-                    x = (width - watermarkWidth) / 2;
-                    y = height - watermarkHeight - margin;
+                    x = `(W-w)/2`;
+                    y = `H-h-${margin}`;
                     break;
                 case 'bottom-right':
-                    x = width - watermarkWidth - margin;
-                    y = height - watermarkHeight - margin;
-                    break;
                 default:
-                    x = width - watermarkWidth - margin;
-                    y = height - watermarkHeight - margin;
+                    x = `W-w-${margin}`;
+                    y = `H-h-${margin}`;
+                    break;
             }
             
-            // Устанавливаем прозрачность
-            ctx.globalAlpha = (watermark.opacity || 70) / 100;
-            
-            if (watermark.type === 'text') {
-                // Сохраняем состояние canvas
-                ctx.save();
-                
-                // Перемещаем в центр водяного знака
-                ctx.translate(x + watermarkWidth / 2, y + watermarkHeight / 2);
-                
-                // Настраиваем текст
-                const fontSize = Math.max(12, watermarkWidth * 0.15);
-                ctx.font = `bold ${fontSize}px Arial`;
-                ctx.fillStyle = watermark.textColor || '#FFFFFF';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                // Добавляем тень если нужно
-                if (watermark.hasTextShadow !== false) {
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                    ctx.shadowBlur = 4;
-                    ctx.shadowOffsetX = 2;
-                    ctx.shadowOffsetY = 2;
-                }
-                
-                // Рисуем текст
-                ctx.fillText(watermark.content, 0, 0);
-                
-                // Сбрасываем тень
-                ctx.shadowColor = 'transparent';
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
-                
-                // Восстанавливаем состояние canvas
-                ctx.restore();
-            } else {
-                // Для изображения
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = function() {
-                    ctx.save();
-                    ctx.translate(x + watermarkWidth / 2, y + watermarkHeight / 2);
-                    ctx.drawImage(img, -watermarkWidth/2, -watermarkHeight/2, watermarkWidth, watermarkHeight);
-                    ctx.restore();
-                };
-                img.onerror = function() {
-                    // Fallback на текст
-                    ctx.font = `bold ${Math.max(12, watermarkWidth * 0.15)}px Arial`;
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('WM', x + watermarkWidth / 2, y + watermarkHeight / 2);
-                };
-                img.src = watermark.content;
-            }
-            
-            // Восстанавливаем прозрачность
-            ctx.globalAlpha = 1;
+            return `${x}:${y}:enable='between(t,0,1e6)'`;
         }
 
-        // Основная функция обработки
+        async function getVideoInfo(file) {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                
+                video.onloadedmetadata = () => {
+                    const info = {
+                        width: video.videoWidth,
+                        height: video.videoHeight,
+                        duration: video.duration,
+                        fps: 30 // По умолчанию
+                    };
+                    
+                    // Пытаемся определить FPS
+                    video.currentTime = 0.1;
+                    video.onseeked = () => {
+                        const start = performance.now();
+                        video.currentTime = 0.2;
+                        video.onseeked = () => {
+                            const end = performance.now();
+                            info.fps = Math.round(1000 / (end - start));
+                            if (info.fps < 15 || info.fps > 240) info.fps = 30;
+                            
+                            URL.revokeObjectURL(video.src);
+                            resolve(info);
+                        };
+                    };
+                };
+                
+                video.onerror = () => {
+                    URL.revokeObjectURL(video.src);
+                    reject(new Error('Не удалось прочитать видео'));
+                };
+                
+                video.src = URL.createObjectURL(file);
+            });
+        }
+
+        function dataURLtoBlob(dataURL) {
+            const arr = dataURL.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            
+            return new Blob([u8arr], { type: mime });
+        }
+
+        // Обновляем основную функцию обработки
         async function processAllMedia() {
             if (!appState.selectedWatermark) {
                 showAlert('Выберите водяной знак', 'error');
@@ -1276,6 +266,13 @@
             if (appState.mediaFiles.length === 0) {
                 showAlert('Выберите файлы для обработки', 'error');
                 return;
+            }
+            
+            // Предупреждение о времени обработки для видео
+            const hasVideo = appState.mediaFiles.some(f => f.type.startsWith('video/'));
+            if (hasVideo) {
+                const useFFmpeg = confirm('Для сохранения качества видео потребуется дополнительная загрузка процессора (около 10-30 МБ). Продолжить?');
+                if (!useFFmpeg) return;
             }
             
             const processBtn = document.getElementById('processBtn');
@@ -1295,19 +292,36 @@
             let processed = 0;
             const total = appState.mediaFiles.length;
             
-            for (const file of appState.mediaFiles) {
+            // Обрабатываем сначала все изображения
+            const images = appState.mediaFiles.filter(f => f.type.startsWith('image/'));
+            const videos = appState.mediaFiles.filter(f => f.type.startsWith('video/'));
+            
+            // Обрабатываем изображения
+            for (const file of images) {
                 try {
-                    progressDetails.textContent = `Обработка: ${file.name} (${processed+1}/${total})`;
+                    progressDetails.textContent = `Изображение: ${file.name} (${processed+1}/${total})`;
+                    await processImage(file);
+                    processed++;
                     
-                    if (file.type.startsWith('image/')) {
-                        await processImage(file);
-                    } else if (file.type.startsWith('video/')) {
-                        const processFullVideo = document.getElementById('processFullVideo').checked;
-                        if (processFullVideo) {
-                            await processVideoWithFFmpeg(file);
-                        } else {
-                            await processVideoScreenshot(file);
-                        }
+                    const progress = (processed / total) * 100;
+                    progressFill.style.width = progress + '%';
+                    progressPercent.textContent = Math.round(progress) + '%';
+                } catch (error) {
+                    console.error('Ошибка обработки изображения:', error);
+                    showAlert(`Ошибка обработки ${file.name}: ${error.message}`, 'error');
+                }
+            }
+            
+            // Обрабатываем видео с использованием FFmpeg
+            for (const file of videos) {
+                try {
+                    progressDetails.textContent = `Видео: ${file.name} (${processed+1}/${total})`;
+                    
+                    const useFullProcessing = document.getElementById('processFullVideo').checked;
+                    if (useFullProcessing && ffmpegSupported()) {
+                        await processVideoWithFFmpeg(file);
+                    } else {
+                        await processVideoScreenshot(file);
                     }
                     
                     processed++;
@@ -1316,7 +330,7 @@
                     progressPercent.textContent = Math.round(progress) + '%';
                     
                 } catch (error) {
-                    console.error('Ошибка обработки файла:', error);
+                    console.error('Ошибка обработки видео:', error);
                     showAlert(`Ошибка обработки ${file.name}: ${error.message}`, 'error');
                 }
             }
@@ -1331,404 +345,68 @@
             showAlert(`Обработка завершена! Обработано файлов: ${processed}/${total}`, 'success');
         }
 
-        async function processImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
-                        applyWatermarkToCanvas(ctx, img.width, img.height, appState.selectedWatermark);
-                        
-                        // Определяем формат сохранения
-                        const format = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
-                        const dataUrl = canvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.9 : 1.0);
-                        downloadFile(dataUrl, `watermarked_${file.name}`);
-                        resolve();
-                    };
-                    img.onerror = reject;
-                    img.src = event.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
+        function ffmpegSupported() {
+            return typeof WebAssembly !== 'undefined' && typeof SharedArrayBuffer !== 'undefined';
         }
 
-        async function processVideoScreenshot(file) {
-            return new Promise((resolve, reject) => {
-                showLoading(true, `Обработка видео: ${file.name}`, 'Создаем скриншот...');
-                
-                const video = document.createElement('video');
-                video.muted = true;
-                video.playsInline = true;
-                
-                video.onloadeddata = function() {
-                    // Берем кадр из середины видео
-                    video.currentTime = Math.min(video.duration / 2, 5);
-                };
-                
-                video.onseeked = function() {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        ctx.drawImage(video, 0, 0);
-                        applyWatermarkToCanvas(ctx, video.videoWidth, video.videoHeight, appState.selectedWatermark);
-                        
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                        downloadFile(dataUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.jpg`);
-                        
-                        URL.revokeObjectURL(video.src);
-                        showLoading(false);
-                        resolve();
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                video.onerror = function() {
-                    reject(new Error('Не удалось загрузить видео'));
-                    URL.revokeObjectURL(video.src);
-                };
-                
-                video.src = URL.createObjectURL(file);
-                video.load();
-            });
-        }
-
-        async function processVideoWithFFmpeg(file) {
-            return new Promise(async (resolve, reject) => {
-            showLoading(true, `Обработка видео: ${file.name}`, 'Получение информации о видео...');
+        // Добавляем предупреждение в интерфейс
+        document.addEventListener('DOMContentLoaded', function() {
+            // ... существующий код ...
             
-            try {
-                // Создаем временный элемент для получения информации о видео
-                const video = document.createElement('video');
-                video.muted = true;
-                video.playsInline = true;
-                
-                // Получаем метаданные видео
-                await new Promise((resolveLoad, rejectLoad) => {
-                    video.onloadedmetadata = () => {
-                        console.log(`Метаданные видео: 
-                            Длительность: ${video.duration}с, 
-                            Размер: ${video.videoWidth}x${video.videoHeight}, 
-                            FPS: (определяем)`
-                        );
-                        resolveLoad();
-                    };
-                    video.onerror = rejectLoad;
-                    video.src = URL.createObjectURL(file);
-                });
-                
-                const duration = video.duration;
-                const width = video.videoWidth;
-                const height = video.videoHeight;
-                
-                // Определяем FPS видео
-                let fps = 30; // значение по умолчанию
-                try {
-                    // Метод 1: пытаемся определить FPS через getVideoPlaybackQuality
-                    if (video.getVideoPlaybackQuality && video.webkitDecodedFrameCount !== undefined) {
-                        const startTime = performance.now();
-                        const startFrames = video.getVideoPlaybackQuality().totalVideoFrames || 
-                                        video.webkitDecodedFrameCount || 0;
-                        
-                        await new Promise(r => setTimeout(r, 1000)); // Ждем 1 секунду
-                        
-                        const endTime = performance.now();
-                        const endFrames = video.getVideoPlaybackQuality().totalVideoFrames || 
-                                        video.webkitDecodedFrameCount || 0;
-                        const elapsedTime = (endTime - startTime) / 1000;
-                        
-                        if (elapsedTime > 0.5) {
-                            fps = Math.round((endFrames - startFrames) / elapsedTime);
-                        }
-                    }
-                    
-                    // Метод 2: если не получилось, используем common FPS values
-                    if (fps === 30 || fps === 0 || fps > 240) {
-                        // Пробуем определить по стандартным значениям
-                        const possibleFps = [24, 25, 30, 48, 50, 60, 120];
-                        const bitrate = file.size / duration; // байт в секунду
-                        
-                        // Для HD видео с высоким битрейтом обычно 60fps
-                        if (width >= 1280 && height >= 720 && bitrate > 2000000) {
-                            fps = 60;
-                        } else if (width > 1920 && height > 1080) {
-                            fps = 60; // 4K обычно 60fps
-                        }
-                    }
-                    
-                    // Ограничиваем разумными значениями
-                    if (fps < 15) fps = 24;
-                    if (fps > 240) fps = 60;
-                    
-                    console.log(`Определен FPS видео: ${fps}`);
-                } catch (error) {
-                    console.warn('Не удалось определить FPS, используем 30', error);
-                    fps = 30;
-                }
-                
-                // Вычисляем битрейт на основе исходного файла
-                const originalBitrate = (file.size * 8) / duration; // бит в секунду
-                let targetBitrate = originalBitrate;
-                
-                // Корректируем битрейт для формата
-                if (targetBitrate > 50000000) targetBitrate = 50000000; // Макс 50 Mbps
-                if (targetBitrate < 1000000) targetBitrate = 1000000;   // Мин 1 Mbps
-                
-                console.log(`Битрейт: исходный=${Math.round(originalBitrate/1000)}kbps, целевой=${Math.round(targetBitrate/1000)}kbps`);
-                
-                // Создаем canvas для обработки
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = width;
-                canvas.height = height;
-                
-                // Создаем временный canvas для водяного знака
-                const watermarkCanvas = document.createElement('canvas');
-                const watermarkCtx = watermarkCanvas.getContext('2d');
-                watermarkCanvas.width = width;
-                watermarkCanvas.height = height;
-                
-                // Сначала рисуем водяной знак на отдельном canvas
-                applyWatermarkToCanvas(watermarkCtx, width, height, appState.selectedWatermark);
-                
-                // Создаем MediaRecorder с сохранением FPS
-                const stream = canvas.captureStream(fps);
-                const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp9') 
-                    ? 'video/webm; codecs=vp9' 
-                    : MediaRecorder.isTypeSupported('video/webm') 
-                    ? 'video/webm' 
-                    : 'video/mp4';
-                
-                console.log(`Используем MIME тип: ${mimeType}, FPS: ${fps}, Битрейт: ${targetBitrate}`);
-                
-                const mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: mimeType,
-                    videoBitsPerSecond: targetBitrate
-                });
-                
-                const chunks = [];
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data && event.data.size > 0) {
-                        chunks.push(event.data);
-                        const progressPercent = Math.min(100, (chunks.length / (duration * fps)) * 100);
-                        document.getElementById('videoProgress').textContent = 
-                            `Запись: ${progressPercent.toFixed(1)}% (кадр ${chunks.length})`;
-                    }
-                };
-                
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: mimeType });
-                    const url = URL.createObjectURL(blob);
-                    
-                    // Сохраняем с тем же расширением, что и оригинал
-                    const originalExtension = file.name.split('.').pop().toLowerCase();
-                    let finalExtension = 'mp4';
-                    
-                    // Определяем правильное расширение по MIME типу
-                    if (mimeType.includes('webm')) {
-                        finalExtension = 'webm';
-                    } else if (['mov', 'avi', 'mkv', 'flv'].includes(originalExtension)) {
-                        finalExtension = 'mp4'; // Конвертируем в mp4 для совместимости
-                    } else if (originalExtension) {
-                        finalExtension = originalExtension;
-                    }
-                    
-                    const filename = `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.${finalExtension}`;
-                    downloadFile(url, filename);
-                    
-                    URL.revokeObjectURL(video.src);
-                    showLoading(false);
-                    resolve();
-                };
-                
-                mediaRecorder.onerror = (error) => {
-                    console.error('Ошибка записи видео:', error);
-                    reject(new Error('Ошибка записи видео: ' + error));
-                    URL.revokeObjectURL(video.src);
-                };
-                
-                // Начинаем запись
-                mediaRecorder.start(100); // Собираем данные каждые 100мс для плавности
-                
-                // Обрабатываем каждый кадр с сохранением оригинальной частоты кадров
-                let currentTime = 0;
-                const timeStep = 1 / fps;
-                let frameIndex = 0;
-                
-                const processNextFrame = () => {
-                    if (currentTime >= duration) {
-                        mediaRecorder.stop();
-                        return;
-                    }
-                    
-                    // Обновляем прогресс
-                    const progressPercent = Math.min(100, (currentTime / duration) * 100);
-                    document.getElementById('loadingDetails').textContent = 
-                        `Обработка: ${progressPercent.toFixed(1)}% (${currentTime.toFixed(1)}/${duration.toFixed(1)} сек)`;
-                    
-                    video.currentTime = currentTime;
-                    
-                    video.onseeked = () => {
-                        // Очищаем основной canvas
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        
-                        try {
-                            // Рисуем кадр видео с оригинальным качеством
-                            ctx.drawImage(video, 0, 0, width, height);
-                            
-                            // Накладываем водяной знак с сохранением прозрачности
-                            ctx.globalAlpha = (appState.selectedWatermark.opacity || 70) / 100;
-                            ctx.drawImage(watermarkCanvas, 0, 0);
-                            ctx.globalAlpha = 1;
-                            
-                            frameIndex++;
-                            
-                            // Переходим к следующему кадру
-                            currentTime += timeStep;
-                            
-                            // Используем requestAnimationFrame для плавной обработки
-                            if (mediaRecorder.state === 'recording') {
-                                setTimeout(() => {
-                                    processNextFrame();
-                                }, 0);
-                            }
-                        } catch (error) {
-                            console.error('Ошибка обработки кадра:', error);
-                            currentTime += timeStep;
-                            if (mediaRecorder.state === 'recording') {
-                                processNextFrame();
-                            }
-                        }
-                    };
-                    
-                    video.onerror = () => {
-                        console.warn('Ошибка при seek кадра, пропускаем');
-                        currentTime += timeStep;
-                        if (mediaRecorder.state === 'recording') {
-                            processNextFrame();
-                        }
-                    };
-                };
-                
-                // Запускаем обработку первого кадра
-                video.currentTime = 0;
-                video.onseeked = () => {
-                    processNextFrame();
-                };
-                
-            } catch (error) {
-                console.error('Ошибка обработки видео:', error);
-                showLoading(false);
-                
-                // Fallback: если не удалось обработать видео полностью, создаем скриншот
-                showAlert('Используем упрощенную обработку видео...', 'warning');
-                try {
-                    await processVideoScreenshot(file);
-                    resolve();
-                } catch (screenshotError) {
-                    reject(screenshotError);
-                }
-            }
-        });
-}
-
-        async function detectVideoFPS(video) {
-    return new Promise((resolve) => {
-        let fps = 30;
-        const startTime = performance.now();
-        let frameCount = 0;
-        
-        const checkFPS = () => {
-            frameCount++;
-            const elapsed = performance.now() - startTime;
-            
-            if (elapsed >= 500) { // Считаем за 0.5 секунды
-                fps = Math.round((frameCount * 1000) / elapsed);
-                resolve(Math.max(24, Math.min(fps, 120))); // Ограничиваем разумными значениями
-                return;
-            }
-            
-            requestAnimationFrame(checkFPS);
-        };
-        
-        video.play().then(() => {
-            checkFPS();
-            setTimeout(() => {
-                video.pause();
-            }, 600);
-        }).catch(() => {
-            resolve(30);
-        });
-    });
-}
-
-        function downloadFile(dataUrl, filename) {
-            try {
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Если это blob URL, освобождаем его
-                if (dataUrl.startsWith('blob:')) {
-                    setTimeout(() => URL.revokeObjectURL(dataUrl), 1000);
-                }
-                
-                console.log('Файл скачан:', filename);
-            } catch (error) {
-                console.error('Ошибка скачивания файла:', error);
-                showAlert('Ошибка скачивания файла', 'error');
-            }
-        }
-
-        function showLoading(show, text = 'Обработка...', details = '') {
-            const overlay = document.getElementById('loadingOverlay');
-            const loadingText = document.getElementById('loadingText');
-            const loadingDetails = document.getElementById('loadingDetails');
-            const videoProgress = document.getElementById('videoProgress');
-            
-            if (show) {
-                overlay.style.display = 'flex';
-                loadingText.textContent = text;
-                loadingDetails.textContent = details;
-                videoProgress.textContent = '';
+            // Добавляем информацию о поддержке FFmpeg
+            if (ffmpegSupported()) {
+                console.log('FFmpeg поддерживается в этом браузере');
             } else {
-                overlay.style.display = 'none';
-            }
-        }
-
-        function showAlert(message, type) {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.innerHTML = `
-                <div style="font-size: 20px;">
-                    ${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}
-                </div>
-                <div>${message}</div>
-            `;
-            
-            const appContent = document.getElementById('appContent');
-            appContent.insertBefore(alert, appContent.firstChild);
-            
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.parentNode.removeChild(alert);
+                console.warn('FFmpeg не поддерживается. Будет использоваться упрощенная обработка видео.');
+                const videoOptions = document.getElementById('videoOptions');
+                if (videoOptions) {
+                    const warning = document.createElement('div');
+                    warning.className = 'alert alert-warning';
+                    warning.innerHTML = '⚠️ Ваш браузер не поддерживает полную обработку видео. Будут использоваться скриншоты.';
+                    videoOptions.insertBefore(warning, videoOptions.firstChild);
                 }
-            }, 3000);
-        }
+            }
+        });
+
+        // Обновляем HTML с настройками качества
+        // Найдите <div id="videoOptions" и замените на:
+        /*
+        <div id="videoOptions" class="video-settings" style="display: none;">
+            <h3 style="font-size: 16px; margin-bottom: 15px;">🎬 Настройки обработки видео</h3>
+            
+            <div class="video-option">
+                <input type="checkbox" id="processFullVideo" checked>
+                <label for="processFullVideo"><strong>Обработать видео полностью (сохранить качество и FPS)</strong></label>
+            </div>
+            
+            <div class="quality-controls">
+                <div class="setting-row">
+                    <label>Качество видео:</label>
+                    <select id="qualityPreset">
+                        <option value="lossless">Без потерь (очень медленно)</option>
+                        <option value="high" selected>Высокое (рекомендуется)</option>
+                        <option value="medium">Среднее</option>
+                        <option value="fast">Быстрое</option>
+                    </select>
+                </div>
+                
+                <div class="setting-row">
+                    <label>Сохранять оригинальный FPS:</label>
+                    <input type="checkbox" id="keepOriginalFPS" checked>
+                </div>
+            </div>
+            
+            <div class="video-format-warning">
+                ✅ Используется профессиональный видеопроцессор для сохранения максимального качества
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 13px;">
+                ⚠️ Обработка видео может занять время в зависимости от длины и качества. 
+                Рекомендуется обрабатывать видео до 2 минут для стабильной работы.
+                Для видео более 5 минут используйте настольные приложения.
+            </div>
+        </div>
+        */
     </script>
 </body>
 </html>
