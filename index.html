@@ -476,41 +476,22 @@
             border: 1px solid #b3d7ff;
         }
         
-        .quality-slider {
-            width: 100%;
-            margin: 10px 0;
-        }
-        
-        .quality-slider-value {
-            text-align: center;
+        .local-processing-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
             font-weight: bold;
-            color: #007bff;
-        }
-        
-        .ffmpeg-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 14px;
-        }
-        
-        .video-info-display {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border-left: 4px solid #007bff;
-            font-size: 13px;
+            margin-left: 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="app-header">
-            <h1>💧 Водяные знаки</h1>
+            <h1>💧 Водяные знаки <span class="local-processing-badge">На устройстве</span></h1>
             <button id="closeApp" class="btn-close">✕</button>
         </header>
 
@@ -529,7 +510,10 @@
                     </button>
                 </div>
                 <div class="alert alert-info">
-                    ⚡ Все файлы обрабатываются на вашем устройстве
+                    ⚡ Вся обработка происходит на вашем устройстве
+                </div>
+                <div class="alert alert-success">
+                    ✅ Никакие файлы не отправляются на сервер
                 </div>
             </div>
 
@@ -622,6 +606,10 @@
             <div id="applyWatermark" class="section">
                 <h2>Применить водяной знак</h2>
                 
+                <div class="alert alert-success">
+                    ✅ Вся обработка происходит локально на вашем устройстве
+                </div>
+                
                 <div class="form-group">
                     <label>Выберите водяной знак:</label>
                     <select id="selectWatermark" onchange="selectWatermark(this.value)">
@@ -649,39 +637,23 @@
                     
                     <div class="video-option">
                         <input type="checkbox" id="processFullVideo" checked>
-                        <label for="processFullVideo"><strong>Обработать видео полностью с максимальным качеством</strong></label>
+                        <label for="processFullVideo"><strong>Обработать видео полностью</strong></label>
                     </div>
                     
-                    <div class="quality-controls" id="qualitySettings">
+                    <div class="quality-controls">
                         <div class="setting-row">
-                            <label>Целевой битрейт:</label>
-                            <select id="bitrateSelect">
-                                <option value="original">Исходный битрейт</option>
-                                <option value="5000">5 Mbps (отличное)</option>
-                                <option value="8000">8 Mbps (превосходное)</option>
-                                <option value="12000">12 Mbps (максимальное)</option>
+                            <label>Качество обработки:</label>
+                            <select id="qualityPreset">
+                                <option value="high">Высокое (рекомендуется)</option>
+                                <option value="medium">Среднее</option>
+                                <option value="low">Низкое (быстрее)</option>
                             </select>
                         </div>
                         
-                        <div class="setting-row">
-                            <label>Кодек:</label>
-                            <select id="codecSelect">
-                                <option value="h264">H.264 (совместимый)</option>
-                                <option value="vp9">VP9 (качественный)</option>
-                            </select>
+                        <div class="video-format-warning">
+                            ⚠️ Обработка видео происходит полностью на вашем устройстве. 
+                            Для длинных видео (>1 мин) рекомендуется использовать настольный компьютер.
                         </div>
-                        
-                        <div class="video-info-display" id="videoInfoDisplay" style="display: none;">
-                            <!-- Информация о видео -->
-                        </div>
-                    </div>
-                    
-                    <div class="video-format-warning">
-                        ✅ Качество будет сохранено на максимально возможном уровне
-                    </div>
-                    
-                    <div class="ffmpeg-warning">
-                        ⚠️ Полная обработка видео требует мощного процессора. Для видео длиннее 1 минуты рекомендуется использовать настольные приложения.
                     </div>
                 </div>
 
@@ -751,9 +723,7 @@
             textColor: '#FFFFFF',
             fontSize: 36,
             hasTextShadow: true,
-            videoQuality: 'original',
-            videoCodec: 'h264',
-            originalVideoInfo: null
+            qualityPreset: 'high'
         };
 
         // Инициализация при загрузке
@@ -802,13 +772,9 @@
                 appState.hasTextShadow = e.target.checked;
             });
             
-            // Настраиваем качество видео
-            document.getElementById('bitrateSelect').addEventListener('change', function(e) {
-                appState.videoQuality = e.target.value;
-            });
-            
-            document.getElementById('codecSelect').addEventListener('change', function(e) {
-                appState.videoCodec = e.target.value;
+            // Настраиваем качество
+            document.getElementById('qualityPreset').addEventListener('change', function(e) {
+                appState.qualityPreset = e.target.value;
             });
             
             // Обновляем значения
@@ -818,6 +784,9 @@
             
             // Добавляем тестовый водяной знак по умолчанию
             addDefaultWatermark();
+            
+            // Показываем, что обработка локальная
+            console.log('✅ Вся обработка происходит на устройстве пользователя');
         });
 
         // Функции управления интерфейсом
@@ -1074,7 +1043,7 @@
         }
 
         // Работа с медиафайлами
-        async function handleMediaFiles(files) {
+        function handleMediaFiles(files) {
             const maxFiles = 5;
             if (files.length > maxFiles) {
                 showAlert(`Максимальное количество файлов: ${maxFiles}. Будут обработаны первые ${maxFiles} файлов.`, 'info');
@@ -1087,52 +1056,9 @@
             const hasVideo = appState.mediaFiles.some(file => file.type.startsWith('video/'));
             document.getElementById('videoOptions').style.display = hasVideo ? 'block' : 'none';
             
-            // Получаем информацию о видео
-            if (hasVideo) {
-                const videoFile = appState.mediaFiles.find(f => f.type.startsWith('video/'));
-                if (videoFile) {
-                    await getVideoInfo(videoFile);
-                }
-            }
-            
             if (files.length > 0 && appState.selectedWatermark) {
                 updatePreview();
             }
-        }
-
-        async function getVideoInfo(videoFile) {
-            return new Promise((resolve) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                
-                video.onloadedmetadata = () => {
-                    const info = {
-                        duration: video.duration,
-                        width: video.videoWidth,
-                        height: video.videoHeight,
-                        size: (videoFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-                        bitrate: Math.round((videoFile.size * 8) / video.duration / 1000) + ' kbps'
-                    };
-                    
-                    appState.originalVideoInfo = info;
-                    
-                    // Показываем информацию о видео
-                    const infoDisplay = document.getElementById('videoInfoDisplay');
-                    infoDisplay.style.display = 'block';
-                    infoDisplay.innerHTML = `
-                        <strong>Информация о видео:</strong><br>
-                        📏 Разрешение: ${info.width}×${info.height}<br>
-                        ⏱️ Длительность: ${Math.round(info.duration)} сек<br>
-                        📊 Битрейт: ${info.bitrate}<br>
-                        💾 Размер файла: ${info.size}
-                    `;
-                    
-                    URL.revokeObjectURL(video.src);
-                    resolve(info);
-                };
-                
-                video.src = URL.createObjectURL(videoFile);
-            });
         }
 
         function updateMediaPreview() {
@@ -1370,6 +1296,9 @@
                 return;
             }
             
+            // Подтверждение, что обработка локальная
+            showAlert('🚀 Начинаем обработку на вашем устройстве...', 'info');
+            
             const processBtn = document.getElementById('processBtn');
             processBtn.disabled = true;
             processBtn.textContent = '⏳ Обработка...';
@@ -1437,12 +1366,12 @@
             
             processBtn.disabled = false;
             processBtn.textContent = '🚀 Начать обработку';
-            showAlert(`Обработка завершена! Обработано файлов: ${processed}/${total}`, 'success');
+            showAlert(`✅ Обработка завершена! Обработано файлов: ${processed}/${total}`, 'success');
         }
 
         async function processImage(file) {
             return new Promise((resolve, reject) => {
-                showLoading(true, `Обработка изображения: ${file.name}`, 'Загрузка...');
+                showLoading(true, `Обработка изображения: ${file.name}`, 'Загрузка на устройстве...');
                 
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -1454,16 +1383,16 @@
                         canvas.width = img.width;
                         canvas.height = img.height;
                         
-                        // Используем высокое качество для изображений
+                        // Используем высокое качество
                         ctx.imageSmoothingEnabled = true;
                         ctx.imageSmoothingQuality = 'high';
                         
                         ctx.drawImage(img, 0, 0);
                         applyWatermarkToCanvas(ctx, img.width, img.height, appState.selectedWatermark);
                         
-                        // Определяем формат сохранения с максимальным качеством
+                        // Сохраняем с максимальным качеством
                         const format = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
-                        const quality = format === 'jpeg' ? 1.0 : 1.0; // Максимальное качество
+                        const quality = format === 'jpeg' ? 0.95 : 1.0;
                         const dataUrl = canvas.toDataURL(`image/${format}`, quality);
                         
                         downloadFile(dataUrl, `watermarked_${file.name}`);
@@ -1481,7 +1410,7 @@
 
         async function processVideoScreenshot(file) {
             return new Promise((resolve, reject) => {
-                showLoading(true, `Обработка видео: ${file.name}`, 'Создаем скриншот...');
+                showLoading(true, `Обработка видео: ${file.name}`, 'Создаем скриншот на устройстве...');
                 
                 const video = document.createElement('video');
                 video.muted = true;
@@ -1507,8 +1436,8 @@
                         ctx.drawImage(video, 0, 0);
                         applyWatermarkToCanvas(ctx, video.videoWidth, video.videoHeight, appState.selectedWatermark);
                         
-                        // Сохраняем с максимальным качеством
-                        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+                        // Сохраняем с высоким качеством
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
                         downloadFile(dataUrl, `watermarked_${file.name.replace(/\.[^/.]+$/, '')}.jpg`);
                         
                         URL.revokeObjectURL(video.src);
@@ -1531,7 +1460,7 @@
 
         async function processVideoHighQuality(file) {
             return new Promise(async (resolve, reject) => {
-                showLoading(true, `Обработка видео: ${file.name}`, 'Подготовка к обработке...');
+                showLoading(true, `Обработка видео: ${file.name}`, 'Подготовка к обработке на устройстве...');
                 
                 try {
                     // Получаем информацию о видео
@@ -1554,37 +1483,36 @@
                     canvas.width = videoInfo.width;
                     canvas.height = videoInfo.height;
                     
-                    // Устанавливаем высокое качество
+                    // Устанавливаем высокое качество рендеринга
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
                     
-                    // Создаем видеопоток с высоким битрейтом
-                    const stream = canvas.captureStream(30); // Используем 30 FPS как стандарт
+                    // Создаем видеопоток
+                    const stream = canvas.captureStream(videoInfo.fps || 30);
                     
-                    // Определяем настройки качества
-                    let bitrate = 5000000; // 5 Mbps по умолчанию
-                    
-                    if (appState.videoQuality === 'original' && appState.originalVideoInfo) {
-                        // Пытаемся вычислить оригинальный битрейт
-                        const originalBitrate = parseInt(appState.originalVideoInfo.bitrate) * 1000;
-                        if (originalBitrate > 1000000) {
-                            bitrate = Math.min(20000000, originalBitrate); // Ограничиваем 20 Mbps
-                        }
-                    } else if (appState.videoQuality !== 'original') {
-                        bitrate = parseInt(appState.videoQuality) * 1000;
+                    // Определяем настройки качества на основе выбранного пресета
+                    let bitrate;
+                    switch(appState.qualityPreset) {
+                        case 'high':
+                            bitrate = 8000000; // 8 Mbps
+                            break;
+                        case 'medium':
+                            bitrate = 4000000; // 4 Mbps
+                            break;
+                        case 'low':
+                            bitrate = 2000000; // 2 Mbps
+                            break;
+                        default:
+                            bitrate = 4000000;
                     }
                     
-                    // Выбираем кодек
-                    let mimeType;
-                    if (appState.videoCodec === 'vp9' && MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
-                        mimeType = 'video/webm; codecs=vp9';
-                    } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                        mimeType = 'video/webm';
-                    } else {
+                    // Определяем поддерживаемый MIME тип
+                    let mimeType = 'video/webm';
+                    if (MediaRecorder.isTypeSupported('video/mp4')) {
                         mimeType = 'video/mp4';
+                    } else if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9')) {
+                        mimeType = 'video/webm; codecs=vp9';
                     }
-                    
-                    console.log(`Используем настройки: битрейт=${bitrate}, кодек=${mimeType}`);
                     
                     const mediaRecorder = new MediaRecorder(stream, {
                         mimeType: mimeType,
@@ -1626,30 +1554,9 @@
                         video.src = URL.createObjectURL(file);
                     });
                     
-                    // Определяем FPS
-                    let fps = 30;
-                    try {
-                        // Пытаемся определить FPS видео
-                        await new Promise((resolve) => {
-                            video.currentTime = 0.1;
-                            video.onseeked = () => {
-                                const start = performance.now();
-                                video.currentTime = 0.2;
-                                video.onseeked = () => {
-                                    const end = performance.now();
-                                    fps = Math.round(1000 / (end - start));
-                                    if (fps < 15 || fps > 240) fps = 30;
-                                    resolve();
-                                };
-                            };
-                        });
-                    } catch (e) {
-                        console.warn('Не удалось определить FPS, используем 30', e);
-                    }
-                    
                     const duration = video.duration;
                     let currentTime = 0;
-                    const timeStep = 1 / fps;
+                    const timeStep = 1 / (videoInfo.fps || 30);
                     
                     // Функция обработки следующего кадра
                     const processNextFrame = () => {
@@ -1662,7 +1569,7 @@
                         // Обновляем прогресс
                         const progressPercent = Math.min(100, (currentTime / duration) * 100);
                         document.getElementById('videoProgress').textContent = 
-                            `Обработка: ${progressPercent.toFixed(1)}% (${currentTime.toFixed(1)}/${duration.toFixed(1)} сек)`;
+                            `Обработка на устройстве: ${progressPercent.toFixed(1)}% (${currentTime.toFixed(1)}/${duration.toFixed(1)} сек)`;
                         
                         video.currentTime = currentTime;
                         
@@ -1711,6 +1618,39 @@
             });
         }
 
+        async function getVideoInfo(file) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                
+                video.onloadedmetadata = () => {
+                    const info = {
+                        duration: video.duration,
+                        width: video.videoWidth,
+                        height: video.videoHeight,
+                        fps: 30 // по умолчанию
+                    };
+                    
+                    // Пытаемся определить FPS
+                    video.currentTime = 0.1;
+                    video.onseeked = () => {
+                        const start = performance.now();
+                        video.currentTime = 0.2;
+                        video.onseeked = () => {
+                            const end = performance.now();
+                            const fps = Math.round(1000 / (end - start));
+                            info.fps = fps > 10 && fps < 120 ? fps : 30;
+                            
+                            URL.revokeObjectURL(video.src);
+                            resolve(info);
+                        };
+                    };
+                };
+                
+                video.src = URL.createObjectURL(file);
+            });
+        }
+
         function downloadFile(dataUrl, filename) {
             try {
                 const link = document.createElement('a');
@@ -1725,7 +1665,7 @@
                     setTimeout(() => URL.revokeObjectURL(dataUrl), 1000);
                 }
                 
-                console.log('Файл скачан:', filename);
+                console.log('Файл скачан локально:', filename);
             } catch (error) {
                 console.error('Ошибка скачивания файла:', error);
                 showAlert('Ошибка скачивания файла', 'error');
