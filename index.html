@@ -196,18 +196,40 @@
             align-self: flex-start;
         }
 
-        #mediaPreview {
+        #mediaPreview, #processedMediaPreview {
             max-width: 100%;
-            max-height: 300px;
+            max-height: 400px;
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            object-fit: contain;
+            background-color: #f8f9fa;
         }
 
-        #videoPreview {
+        /* Исправленное отображение видео */
+        #videoPreview, #processedVideoPreview {
             max-width: 100%;
-            max-height: 300px;
+            max-height: 400px;
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background-color: #000;
+            object-fit: contain;
+        }
+
+        /* Контейнер для видео с фиксированными пропорциями */
+        .video-container {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
         .change-media-btn {
@@ -442,7 +464,8 @@
         .btn-success {
             background: linear-gradient(90deg, #4CAF50, #45a049);
             color: white;
-            flex: 1;
+            min-width: 250px;
+            margin: 0 auto;
         }
 
         .btn:hover {
@@ -521,6 +544,13 @@
             border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
+        /* Центрирование кнопки загрузки */
+        .download-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -546,6 +576,17 @@
             .step {
                 flex: none;
                 width: 30%;
+            }
+            
+            #mediaPreview, #processedMediaPreview, 
+            #videoPreview, #processedVideoPreview {
+                max-height: 300px;
+            }
+            
+            .btn-success {
+                min-width: 200px;
+                width: 100%;
+                max-width: 300px;
             }
         }
     </style>
@@ -708,8 +749,15 @@
 
             <div class="preview-container">
                 <div class="preview-title">Предпросмотр медиа:</div>
+                
+                <!-- Контейнер для видео -->
+                <div class="video-container hidden" id="videoContainer">
+                    <video id="videoPreview" controls></video>
+                </div>
+                
+                <!-- Изображение -->
                 <img id="mediaPreview" class="hidden">
-                <video id="videoPreview" class="hidden" controls></video>
+                
                 <div id="noPreview" class="preview-title" style="text-align: center; width: 100%; padding: 40px 0; color: #999;">
                     <i class="fas fa-image" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                     Медиафайл не загружен
@@ -738,15 +786,23 @@
             
             <div class="preview-container">
                 <div class="preview-title">Обработанное медиа:</div>
+                
+                <!-- Контейнер для обработанного видео -->
+                <div class="video-container hidden" id="processedVideoContainer">
+                    <video id="processedVideoPreview" controls></video>
+                </div>
+                
+                <!-- Обработанное изображение -->
                 <img id="processedMediaPreview" class="hidden">
-                <video id="processedVideoPreview" class="hidden" controls></video>
+                
                 <div id="noProcessedPreview" class="preview-title" style="text-align: center; width: 100%; padding: 40px 0; color: #999;">
                     <i class="fas fa-water" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                     Водяной знак ещё не наложен
                 </div>
             </div>
 
-            <div class="result-actions">
+            <!-- Центрированная кнопка загрузки -->
+            <div class="download-container">
                 <button class="btn btn-success" id="downloadResultBtn" disabled>
                     <i class="fas fa-download"></i> Скачать результат
                 </button>
@@ -813,6 +869,7 @@
         const uploadArea = document.getElementById('uploadArea');
         const mediaPreview = document.getElementById('mediaPreview');
         const videoPreview = document.getElementById('videoPreview');
+        const videoContainer = document.getElementById('videoContainer');
         const noPreview = document.getElementById('noPreview');
         const changeMediaBtn = document.getElementById('changeMediaBtn');
         const mediaInfo = document.getElementById('mediaInfo');
@@ -820,6 +877,7 @@
         // Элементы для результата (из Шага 3)
         const processedMediaPreview = document.getElementById('processedMediaPreview');
         const processedVideoPreview = document.getElementById('processedVideoPreview');
+        const processedVideoContainer = document.getElementById('processedVideoContainer');
         const noProcessedPreview = document.getElementById('noProcessedPreview');
         const downloadResultBtn = document.getElementById('downloadResultBtn');
         
@@ -954,7 +1012,7 @@
                 // Показываем предпросмотр
                 if (isVideo) {
                     mediaPreview.classList.add('hidden');
-                    videoPreview.classList.remove('hidden');
+                    videoContainer.classList.remove('hidden');
                     noPreview.classList.add('hidden');
                     
                     videoPreview.src = e.target.result;
@@ -963,13 +1021,43 @@
                     videoPreview.onloadedmetadata = function() {
                         videoDuration = videoPreview.duration;
                         updateMediaInfo(file, videoDuration);
+                        
+                        // Настраиваем размер контейнера в зависимости от пропорций видео
+                        const aspectRatio = videoPreview.videoWidth / videoPreview.videoHeight;
+                        const maxWidth = 500;
+                        const maxHeight = 400;
+                        
+                        if (aspectRatio > 1) {
+                            // Горизонтальное видео
+                            videoContainer.style.width = '100%';
+                            videoContainer.style.maxWidth = `${maxWidth}px`;
+                        } else {
+                            // Вертикальное видео
+                            videoContainer.style.width = 'auto';
+                            videoContainer.style.maxWidth = '300px';
+                        }
                     };
                 } else {
-                    videoPreview.classList.add('hidden');
+                    videoContainer.classList.add('hidden');
                     mediaPreview.classList.remove('hidden');
                     noPreview.classList.add('hidden');
                     
                     mediaPreview.src = e.target.result;
+                    
+                    // Настраиваем размер изображения
+                    const img = new Image();
+                    img.onload = function() {
+                        const aspectRatio = img.width / img.height;
+                        if (aspectRatio > 1.5) {
+                            mediaPreview.style.maxWidth = '100%';
+                            mediaPreview.style.maxHeight = '400px';
+                        } else {
+                            mediaPreview.style.maxWidth = 'auto';
+                            mediaPreview.style.maxHeight = '400px';
+                        }
+                    };
+                    img.src = e.target.result;
+                    
                     updateMediaInfo(file);
                 }
                 
@@ -1077,8 +1165,18 @@
                     // Показываем результат
                     processedMediaPreview.src = processedMedia;
                     processedMediaPreview.classList.remove('hidden');
-                    processedVideoPreview.classList.add('hidden');
+                    processedVideoContainer.classList.add('hidden');
                     noProcessedPreview.classList.add('hidden');
+                    
+                    // Настраиваем размер изображения
+                    const aspectRatio = img.width / img.height;
+                    if (aspectRatio > 1.5) {
+                        processedMediaPreview.style.maxWidth = '100%';
+                        processedMediaPreview.style.maxHeight = '400px';
+                    } else {
+                        processedMediaPreview.style.maxWidth = 'auto';
+                        processedMediaPreview.style.maxHeight = '400px';
+                    }
                     
                     resolve();
                 };
@@ -1264,9 +1362,23 @@
                     };
                     
                     processedVideoPreview.src = url;
-                    processedVideoPreview.classList.remove('hidden');
+                    processedVideoContainer.classList.remove('hidden');
                     processedMediaPreview.classList.add('hidden');
                     noProcessedPreview.classList.add('hidden');
+                    
+                    // Настраиваем размер контейнера для обработанного видео
+                    const aspectRatio = videoPreview.videoWidth / videoPreview.videoHeight;
+                    const maxWidth = 500;
+                    
+                    if (aspectRatio > 1) {
+                        // Горизонтальное видео
+                        processedVideoContainer.style.width = '100%';
+                        processedVideoContainer.style.maxWidth = `${maxWidth}px`;
+                    } else {
+                        // Вертикальное видео
+                        processedVideoContainer.style.width = 'auto';
+                        processedVideoContainer.style.maxWidth = '300px';
+                    }
                     
                     resolve();
                 };
@@ -1345,13 +1457,13 @@
             
             // Сброс UI
             mediaPreview.classList.add('hidden');
-            videoPreview.classList.add('hidden');
+            videoContainer.classList.add('hidden');
             noPreview.classList.remove('hidden');
             changeMediaBtn.classList.add('hidden');
             mediaInfo.classList.add('hidden');
             
             processedMediaPreview.classList.add('hidden');
-            processedVideoPreview.classList.add('hidden');
+            processedVideoContainer.classList.add('hidden');
             noProcessedPreview.classList.remove('hidden');
             
             watermarkImagePreview.classList.add('hidden');
