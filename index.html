@@ -1241,8 +1241,8 @@
         let watermarkState = {
             x: 0,
             y: 0,
-            dx: 2,
-            dy: 1.5,
+            dx: 3,
+            dy: 2,
             width: 0,
             height: 0,
             angle: 0,
@@ -1250,7 +1250,10 @@
             centerX: 0,
             centerY: 0,
             spiralAngle: 0,
-            spiralRadius: 0
+            spiralRadius: 0,
+            lastTime: 0,
+            velocityX: 0,
+            velocityY: 0
         };
         
         // Анимация предпросмотра движения
@@ -1272,12 +1275,12 @@
         // Пресеты движения
         const motionPresetsData = [
             { name: 'Медленное кружение', speed: 3, type: 'circular' },
-            { name: 'Быстрые отскоки', speed: 15, type: 'bounce' },
-            { name: 'Плавное горизонтально', speed: 8, type: 'horizontal' },
-            { name: 'Плавное вертикально', speed: 8, type: 'vertical' },
-            { name: 'Диагональное движение', speed: 10, type: 'diagonal' },
-            { name: 'Спиральное расширение', speed: 5, type: 'spiral' },
-            { name: 'Случайное блуждание', speed: 12, type: 'random' }
+            { name: 'Быстрые отскоки', speed: 8, type: 'bounce' },
+            { name: 'Плавное горизонтально', speed: 5, type: 'horizontal' },
+            { name: 'Плавное вертикально', speed: 5, type: 'vertical' },
+            { name: 'Диагональное движение', speed: 6, type: 'diagonal' },
+            { name: 'Спиральное расширение', speed: 4, type: 'spiral' },
+            { name: 'Случайное блуждание', speed: 7, type: 'random' }
         ];
         
         // Инициализация
@@ -1475,24 +1478,23 @@
         function startMotionPreview() {
             stopMotionPreview(); // Останавливаем предыдущую анимацию
             
-            const speed = parseInt(speedSlider.value) / 10;
             const motion = motionType.value;
+            let lastTime = null;
             
-            // Сбрасываем состояние
-            watermarkState.x = 10;
-            watermarkState.y = 10;
-            watermarkState.angle = 0;
-            watermarkState.spiralAngle = 0;
-            watermarkState.spiralRadius = 0;
-            watermarkState.dx = 2;
-            watermarkState.dy = 1.5;
-            
-            function animate() {
+            function animate(currentTime) {
+                if (lastTime === null) {
+                    lastTime = currentTime;
+                }
+                
+                const deltaTime = (currentTime - lastTime) / 1000; // в секундах
+                lastTime = currentTime;
+                
+                const speed = parseInt(speedSlider.value) / 10;
                 const previewWidth = motionPreview.clientWidth;
                 const previewHeight = motionPreview.clientHeight;
                 
-                // Обновляем позицию в зависимости от типа движения
-                updateMotionPreviewPosition(previewWidth, previewHeight, speed, motion);
+                // Обновляем позицию с учетом deltaTime
+                updateMotionPreviewPosition(previewWidth, previewHeight, speed, motion, deltaTime);
                 
                 // Ограничиваем позицию в пределах предпросмотра
                 watermarkState.x = Math.max(0, Math.min(previewWidth - watermarkState.width, watermarkState.x));
@@ -1509,71 +1511,92 @@
             motionPreviewAnimation = requestAnimationFrame(animate);
         }
         
-        function updateMotionPreviewPosition(width, height, speed, motion) {
+        function updateMotionPreviewPosition(width, height, speed, motion, deltaTime) {
+            // Увеличиваем влияние deltaTime для более плавного движения
+            const scaledDeltaTime = deltaTime * 60; // Нормализуем к 60 FPS
+            
             switch(motion) {
                 case 'bounce':
                     // Движение с отскоком от краев
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
-                    if (watermarkState.x <= 0 || watermarkState.x + watermarkState.width >= width) {
-                        watermarkState.dx = -watermarkState.dx;
-                        watermarkState.x = Math.max(0, Math.min(width - watermarkState.width, watermarkState.x));
+                    if (watermarkState.x <= 0) {
+                        watermarkState.x = 0;
+                        watermarkState.dx = Math.abs(watermarkState.dx);
+                    } else if (watermarkState.x + watermarkState.width >= width) {
+                        watermarkState.x = width - watermarkState.width;
+                        watermarkState.dx = -Math.abs(watermarkState.dx);
                     }
                     
-                    if (watermarkState.y <= 0 || watermarkState.y + watermarkState.height >= height) {
-                        watermarkState.dy = -watermarkState.dy;
-                        watermarkState.y = Math.max(0, Math.min(height - watermarkState.height, watermarkState.y));
+                    if (watermarkState.y <= 0) {
+                        watermarkState.y = 0;
+                        watermarkState.dy = Math.abs(watermarkState.dy);
+                    } else if (watermarkState.y + watermarkState.height >= height) {
+                        watermarkState.y = height - watermarkState.height;
+                        watermarkState.dy = -Math.abs(watermarkState.dy);
                     }
                     break;
                     
                 case 'circular':
                     // Круговое движение
-                    watermarkState.angle += speed * 0.05;
+                    watermarkState.angle += speed * 0.1 * scaledDeltaTime;
                     watermarkState.x = watermarkState.centerX + Math.cos(watermarkState.angle) * watermarkState.radius - watermarkState.width / 2;
                     watermarkState.y = watermarkState.centerY + Math.sin(watermarkState.angle) * watermarkState.radius - watermarkState.height / 2;
                     break;
                     
                 case 'horizontal':
                     // Горизонтальное движение
-                    watermarkState.x += watermarkState.dx * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
                     
-                    if (watermarkState.x <= 0 || watermarkState.x + watermarkState.width >= width) {
-                        watermarkState.dx = -watermarkState.dx;
-                        watermarkState.x = Math.max(0, Math.min(width - watermarkState.width, watermarkState.x));
+                    if (watermarkState.x <= 0) {
+                        watermarkState.x = 0;
+                        watermarkState.dx = Math.abs(watermarkState.dx);
+                    } else if (watermarkState.x + watermarkState.width >= width) {
+                        watermarkState.x = width - watermarkState.width;
+                        watermarkState.dx = -Math.abs(watermarkState.dx);
                     }
                     break;
                     
                 case 'vertical':
                     // Вертикальное движение
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
-                    if (watermarkState.y <= 0 || watermarkState.y + watermarkState.height >= height) {
-                        watermarkState.dy = -watermarkState.dy;
-                        watermarkState.y = Math.max(0, Math.min(height - watermarkState.height, watermarkState.y));
+                    if (watermarkState.y <= 0) {
+                        watermarkState.y = 0;
+                        watermarkState.dy = Math.abs(watermarkState.dy);
+                    } else if (watermarkState.y + watermarkState.height >= height) {
+                        watermarkState.y = height - watermarkState.height;
+                        watermarkState.dy = -Math.abs(watermarkState.dy);
                     }
                     break;
                     
                 case 'diagonal':
                     // Диагональное движение
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
-                    if (watermarkState.x <= 0 || watermarkState.x + watermarkState.width >= width) {
-                        watermarkState.dx = -watermarkState.dx;
-                        watermarkState.x = Math.max(0, Math.min(width - watermarkState.width, watermarkState.x));
+                    if (watermarkState.x <= 0) {
+                        watermarkState.x = 0;
+                        watermarkState.dx = Math.abs(watermarkState.dx);
+                    } else if (watermarkState.x + watermarkState.width >= width) {
+                        watermarkState.x = width - watermarkState.width;
+                        watermarkState.dx = -Math.abs(watermarkState.dx);
                     }
                     
-                    if (watermarkState.y <= 0 || watermarkState.y + watermarkState.height >= height) {
-                        watermarkState.dy = -watermarkState.dy;
-                        watermarkState.y = Math.max(0, Math.min(height - watermarkState.height, watermarkState.y));
+                    if (watermarkState.y <= 0) {
+                        watermarkState.y = 0;
+                        watermarkState.dy = Math.abs(watermarkState.dy);
+                    } else if (watermarkState.y + watermarkState.height >= height) {
+                        watermarkState.y = height - watermarkState.height;
+                        watermarkState.dy = -Math.abs(watermarkState.dy);
                     }
                     break;
                     
                 case 'spiral':
                     // Спиральное движение
-                    watermarkState.spiralAngle += speed * 0.03;
-                    watermarkState.spiralRadius += speed * 0.1;
+                    watermarkState.spiralAngle += speed * 0.05 * scaledDeltaTime;
+                    watermarkState.spiralRadius += speed * 0.2 * scaledDeltaTime;
                     
                     if (watermarkState.spiralRadius > watermarkState.radius) {
                         watermarkState.spiralRadius = 0;
@@ -1585,22 +1608,28 @@
                     
                 case 'random':
                     // Случайное движение
-                    if (Math.random() < 0.02) {
-                        watermarkState.dx = (Math.random() - 0.5) * 4;
-                        watermarkState.dy = (Math.random() - 0.5) * 4;
+                    if (Math.random() < 0.05) {
+                        watermarkState.dx = (Math.random() - 0.5) * 8;
+                        watermarkState.dy = (Math.random() - 0.5) * 8;
                     }
                     
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
-                    if (watermarkState.x <= 0 || watermarkState.x + watermarkState.width >= width) {
-                        watermarkState.dx = Math.abs(watermarkState.dx) * (watermarkState.x <= 0 ? 1 : -1);
-                        watermarkState.x = Math.max(0, Math.min(width - watermarkState.width, watermarkState.x));
+                    if (watermarkState.x <= 0) {
+                        watermarkState.x = 0;
+                        watermarkState.dx = Math.abs(watermarkState.dx);
+                    } else if (watermarkState.x + watermarkState.width >= width) {
+                        watermarkState.x = width - watermarkState.width;
+                        watermarkState.dx = -Math.abs(watermarkState.dx);
                     }
                     
-                    if (watermarkState.y <= 0 || watermarkState.y + watermarkState.height >= height) {
-                        watermarkState.dy = Math.abs(watermarkState.dy) * (watermarkState.y <= 0 ? 1 : -1);
-                        watermarkState.y = Math.max(0, Math.min(height - watermarkState.height, watermarkState.y));
+                    if (watermarkState.y <= 0) {
+                        watermarkState.y = 0;
+                        watermarkState.dy = Math.abs(watermarkState.dy);
+                    } else if (watermarkState.y + watermarkState.height >= height) {
+                        watermarkState.y = height - watermarkState.height;
+                        watermarkState.dy = -Math.abs(watermarkState.dy);
                     }
                     break;
             }
@@ -2145,8 +2174,7 @@
                     canvas.width = tempVideo.videoWidth;
                     canvas.height = tempVideo.videoHeight;
                     
-                    // ВАЖНО: Инициализируем состояние водяного знака для движения всегда,
-                    // даже если движение не включено, чтобы иметь начальные координаты
+                    // Инициализируем состояние водяного знака для движения
                     initializeWatermarkState(canvas.width, canvas.height);
                     
                     let fps = 30;
@@ -2154,6 +2182,9 @@
                     let currentFrame = 0;
                     
                     videoFrames = [];
+                    
+                    // Устанавливаем начальное время
+                    watermarkState.lastTime = 0;
                     
                     function processFrame() {
                         tempVideo.currentTime = currentFrame / fps;
@@ -2164,11 +2195,12 @@
                             
                             // Если включено движение, обновляем позицию водяного знака перед отрисовкой
                             if (movingWatermark.checked) {
-                                updateWatermarkPosition(canvas.width, canvas.height, currentFrame, totalFrames);
+                                const deltaTime = 1 / fps; // Время между кадрами в секундах
+                                updateWatermarkPositionForVideo(canvas.width, canvas.height, deltaTime);
                             }
                             
                             // Применяем водяной знак с текущими координатами
-                            applyWatermarkToCanvas(ctx, canvas.width, canvas.height, currentFrame, totalFrames);
+                            applyWatermarkToCanvas(ctx, canvas.width, canvas.height);
                             
                             videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
                             currentFrame++;
@@ -2266,8 +2298,8 @@
             
             // Начальная скорость зависит от настроек скорости
             const speed = parseInt(speedSlider.value);
-            watermarkState.dx = speed / 2;
-            watermarkState.dy = speed / 3;
+            watermarkState.dx = speed / 3;
+            watermarkState.dy = speed / 4;
             
             // Для кругового и спирального движения
             watermarkState.centerX = videoWidth / 2;
@@ -2278,15 +2310,18 @@
             watermarkState.spiralRadius = 0;
         }
         
-        function updateWatermarkPosition(videoWidth, videoHeight, currentFrame, totalFrames) {
+        function updateWatermarkPositionForVideo(videoWidth, videoHeight, deltaTime) {
             const speed = parseInt(speedSlider.value) / 10;
             const motion = motionType.value;
+            
+            // Увеличиваем влияние deltaTime для более плавного движения
+            const scaledDeltaTime = deltaTime * 60; // Нормализуем к 60 FPS
             
             switch(motion) {
                 case 'bounce':
                     // Движение с отскоком от краев
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
                     // Проверка столкновения с границами
                     if (watermarkState.x <= 0) {
@@ -2308,14 +2343,14 @@
                     
                 case 'circular':
                     // Круговое движение
-                    watermarkState.angle += speed * 0.05;
+                    watermarkState.angle += speed * 0.1 * scaledDeltaTime;
                     watermarkState.x = watermarkState.centerX + Math.cos(watermarkState.angle) * watermarkState.radius - watermarkState.width / 2;
                     watermarkState.y = watermarkState.centerY + Math.sin(watermarkState.angle) * watermarkState.radius - watermarkState.height / 2;
                     break;
                     
                 case 'horizontal':
                     // Горизонтальное движение
-                    watermarkState.x += watermarkState.dx * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
                     
                     if (watermarkState.x <= 0) {
                         watermarkState.x = 0;
@@ -2328,7 +2363,7 @@
                     
                 case 'vertical':
                     // Вертикальное движение
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
                     if (watermarkState.y <= 0) {
                         watermarkState.y = 0;
@@ -2341,8 +2376,8 @@
                     
                 case 'diagonal':
                     // Диагональное движение
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
                     if (watermarkState.x <= 0) {
                         watermarkState.x = 0;
@@ -2363,8 +2398,8 @@
                     
                 case 'spiral':
                     // Спиральное движение
-                    watermarkState.spiralAngle += speed * 0.03;
-                    watermarkState.spiralRadius += speed * 0.1;
+                    watermarkState.spiralAngle += speed * 0.05 * scaledDeltaTime;
+                    watermarkState.spiralRadius += speed * 0.2 * scaledDeltaTime;
                     
                     if (watermarkState.spiralRadius > watermarkState.radius) {
                         watermarkState.spiralRadius = 0;
@@ -2376,13 +2411,13 @@
                     
                 case 'random':
                     // Случайное движение
-                    if (Math.random() < 0.02) {
-                        watermarkState.dx = (Math.random() - 0.5) * 4;
-                        watermarkState.dy = (Math.random() - 0.5) * 4;
+                    if (Math.random() < 0.05) {
+                        watermarkState.dx = (Math.random() - 0.5) * 8;
+                        watermarkState.dy = (Math.random() - 0.5) * 8;
                     }
                     
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
+                    watermarkState.x += watermarkState.dx * speed * scaledDeltaTime;
+                    watermarkState.y += watermarkState.dy * speed * scaledDeltaTime;
                     
                     if (watermarkState.x <= 0) {
                         watermarkState.x = 0;
@@ -2403,11 +2438,11 @@
             }
         }
         
-         function applyWatermarkToCanvas(ctx, width, height, frameIndex = 0, totalFrames = 1) {
+        function applyWatermarkToCanvas(ctx, width, height) {
             const opacity = parseInt(opacitySlider.value) / 100;
             
-            // ВАЖНО: Определяем, используем ли мы движение для этого кадра
-            const useMotion = isVideo && movingWatermark.checked && totalFrames > 1;
+            // Определяем, используем ли мы движение для этого кадра
+            const useMotion = isVideo && movingWatermark.checked;
             
             let x, y, watermarkWidth, watermarkHeight;
             
