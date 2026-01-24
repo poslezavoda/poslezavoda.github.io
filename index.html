@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watermark App для Telegram</title>
+    <title>TgPosted - Водяные знаки для Telegram</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -15,8 +15,8 @@
         }
 
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #fff;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            color: #333;
             min-height: 100vh;
             padding: 20px;
             overflow-x: hidden;
@@ -32,31 +32,93 @@
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
             font-size: 28px;
             margin-bottom: 10px;
-            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
 
         .header p {
-            color: #aaa;
+            color: #666;
             font-size: 16px;
         }
 
+        .steps-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .steps-indicator::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 1;
+        }
+
+        .step {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 0 auto 10px;
+            transition: all 0.3s;
+        }
+
+        .step.active .step-circle {
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .step.completed .step-circle {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .step-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .step.active .step-text {
+            color: #0072ff;
+            font-weight: 600;
+        }
+
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
+            background: white;
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
         }
 
         .card-title {
@@ -65,25 +127,41 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            color: #333;
         }
 
         .card-title i {
-            color: #00c6ff;
+            color: #0072ff;
+        }
+
+        .step-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .upload-area {
-            border: 2px dashed rgba(0, 114, 255, 0.5);
+            border: 2px dashed rgba(0, 114, 255, 0.3);
             border-radius: 12px;
             padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
             margin-bottom: 20px;
+            background: #f8f9fa;
         }
 
         .upload-area:hover {
             border-color: #0072ff;
-            background: rgba(0, 114, 255, 0.05);
+            background: rgba(0, 114, 255, 0.03);
         }
 
         .upload-icon {
@@ -95,10 +173,11 @@
         .upload-text {
             font-size: 18px;
             margin-bottom: 10px;
+            color: #333;
         }
 
         .upload-subtext {
-            color: #aaa;
+            color: #666;
             font-size: 14px;
         }
 
@@ -113,30 +192,31 @@
         .preview-title {
             font-size: 18px;
             margin-bottom: 15px;
-            color: #aaa;
+            color: #666;
+            align-self: flex-start;
         }
 
         #mediaPreview {
             max-width: 100%;
             max-height: 300px;
             border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         #videoPreview {
             max-width: 100%;
             max-height: 300px;
             border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .change-media-btn {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -149,7 +229,8 @@
         }
 
         .change-media-btn:hover {
-            background: rgba(0, 114, 255, 0.8);
+            background: #0072ff;
+            color: white;
             transform: scale(1.1);
         }
 
@@ -168,15 +249,15 @@
         label {
             font-size: 16px;
             font-weight: 500;
-            color: #ddd;
+            color: #444;
         }
 
         select, input[type="text"], input[type="range"], input[type="number"] {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 12px 16px;
-            color: white;
+            color: #333;
             font-size: 16px;
             outline: none;
             transition: all 0.3s;
@@ -184,18 +265,19 @@
 
         select:focus, input[type="text"]:focus, input[type="number"]:focus {
             border-color: #0072ff;
-            box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.3);
+            box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.1);
         }
 
         input[type="range"] {
             padding: 8px 0;
+            background: transparent;
         }
 
         .range-value {
             display: flex;
             justify-content: space-between;
             font-size: 14px;
-            color: #aaa;
+            color: #666;
         }
 
         .watermark-type {
@@ -209,15 +291,17 @@
             text-align: center;
             padding: 12px;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
+            background: #f8f9fa;
             cursor: pointer;
             transition: all 0.3s;
-            border: 1px solid transparent;
+            border: 1px solid #e0e0e0;
+            color: #666;
         }
 
         .type-option.active {
-            background: rgba(0, 114, 255, 0.2);
+            background: rgba(0, 114, 255, 0.1);
             border-color: #0072ff;
+            color: #0072ff;
         }
 
         .position-grid {
@@ -232,16 +316,18 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.05);
+            background: #f8f9fa;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
-            border: 1px solid transparent;
+            border: 1px solid #e0e0e0;
+            color: #666;
         }
 
         .position-btn.active {
-            background: rgba(0, 114, 255, 0.2);
+            background: rgba(0, 114, 255, 0.1);
             border-color: #0072ff;
+            color: #0072ff;
         }
 
         .position-btn i {
@@ -275,7 +361,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: #e0e0e0;
             transition: .4s;
             border-radius: 34px;
         }
@@ -301,11 +387,12 @@
         }
 
         .motion-settings {
-            background: rgba(255, 255, 255, 0.05);
+            background: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
             margin-top: 10px;
             display: none;
+            border: 1px solid #e0e0e0;
         }
 
         .motion-settings.active {
@@ -319,130 +406,15 @@
             margin-top: 10px;
         }
 
-        /* Исправление для выпадающего списка */
-        select {
-            background: rgba(30, 30, 46, 0.95);
-            color: white;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            background-size: 20px;
-            padding-right: 40px;
-        }
-
-        select option {
-            background: rgba(30, 30, 46, 0.95);
-            color: white;
-        }
-
-        select:focus option {
-            background: rgba(0, 114, 255, 0.2);
-        }
-
-        /* Стили для сохраненных водяных знаков */
-        .saved-watermarks {
-            margin-top: 15px;
-        }
-
-        .saved-watermarks-list {
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .saved-watermark-item {
+        .navigation-buttons {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            margin-bottom: 5px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .saved-watermark-item:hover {
-            background: rgba(0, 114, 255, 0.1);
-        }
-
-        .saved-watermark-item.active {
-            background: rgba(0, 114, 255, 0.2);
-            border: 1px solid #0072ff;
-        }
-
-        .watermark-item-name {
-            font-weight: 500;
-        }
-
-        .watermark-item-type {
-            font-size: 12px;
-            color: #aaa;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .watermark-item-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .watermark-item-btn {
-            background: none;
-            border: none;
-            color: #aaa;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 4px;
-            transition: all 0.3s;
-        }
-
-        .watermark-item-btn:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .save-watermark-form {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .save-watermark-input {
-            flex: 1;
-        }
-
-        .save-watermark-btn {
-            background: rgba(0, 114, 255, 0.2);
-            color: white;
-            border: 1px solid #0072ff;
-            border-radius: 8px;
-            padding: 0 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .save-watermark-btn:hover {
-            background: rgba(0, 114, 255, 0.3);
-        }
-
-        .button-group {
-            display: flex;
             gap: 15px;
-            margin-top: 20px;
+            margin-top: 30px;
         }
 
         .btn {
-            flex: 1;
-            padding: 16px;
+            padding: 16px 24px;
             border-radius: 10px;
             border: none;
             font-size: 16px;
@@ -458,16 +430,24 @@
         .btn-primary {
             background: linear-gradient(90deg, #0072ff, #00c6ff);
             color: white;
+            flex: 1;
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .btn-success {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
             color: white;
+            flex: 1;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
+            box-shadow: 0 6px 20px rgba(0, 114, 255, 0.2);
         }
 
         .btn:active {
@@ -486,7 +466,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(255, 255, 255, 0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -498,7 +478,7 @@
         .spinner {
             width: 60px;
             height: 60px;
-            border: 5px solid rgba(255, 255, 255, 0.1);
+            border: 5px solid rgba(0, 114, 255, 0.1);
             border-top-color: #0072ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -511,27 +491,34 @@
 
         .processing-text {
             font-size: 20px;
-            color: white;
+            color: #333;
         }
 
         .footer {
             text-align: center;
             margin-top: 30px;
-            color: #aaa;
+            color: #666;
             font-size: 14px;
             padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .media-info {
             margin-top: 10px;
             font-size: 14px;
-            color: #aaa;
+            color: #666;
             text-align: center;
+        }
+
+        .result-actions {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         @media (max-width: 600px) {
@@ -543,16 +530,22 @@
                 padding: 16px;
             }
             
-            .button-group {
-                flex-direction: column;
-            }
-            
             .motion-controls {
                 grid-template-columns: 1fr;
             }
             
-            .save-watermark-form {
+            .navigation-buttons {
                 flex-direction: column;
+            }
+            
+            .steps-indicator {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .step {
+                flex: none;
+                width: 30%;
             }
         }
     </style>
@@ -560,37 +553,29 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-water"></i> Watermark App</h1>
-            <p>Наложение водяных знаков на фото и видео без потери качества</p>
+            <h1><i class="fas fa-paperclip"></i> TgPosted</h1>
+            <p>Наложение водяных знаков на фото и видео для Telegram</p>
         </div>
 
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-upload"></i> Загрузите медиа</h2>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </div>
-                <div class="upload-text">Нажмите для загрузки фото или видео</div>
-                <div class="upload-subtext">Поддерживаются форматы: JPG, PNG, GIF, MP4, WEBM, MOV</div>
-                <input type="file" id="fileInput" accept="image/*,video/*" class="hidden">
+        <!-- Индикатор шагов -->
+        <div class="steps-indicator">
+            <div class="step active" id="step1">
+                <div class="step-circle">1</div>
+                <div class="step-text">Создание вотермарки</div>
             </div>
-
-            <div class="preview-container">
-                <div class="preview-title">Предпросмотр:</div>
-                <img id="mediaPreview" class="hidden">
-                <video id="videoPreview" class="hidden" controls></video>
-                <div id="noPreview" class="preview-title">Медиафайл не загружен</div>
-                
-                <button class="change-media-btn hidden" id="changeMediaBtn" title="Заменить медиа">
-                    <i class="fas fa-exchange-alt"></i>
-                </button>
-                
-                <div id="mediaInfo" class="media-info hidden"></div>
+            <div class="step" id="step2">
+                <div class="step-circle">2</div>
+                <div class="step-text">Загрузка медиа</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-circle">3</div>
+                <div class="step-text">Результат</div>
             </div>
         </div>
 
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-tint"></i> Настройки водяного знака</h2>
+        <!-- Шаг 1: Создание вотермарки -->
+        <div class="card step-content active" id="step1Content">
+            <h2 class="card-title"><i class="fas fa-paint-brush"></i> Создание водяного знака</h2>
             
             <div class="controls">
                 <div class="control-group">
@@ -607,7 +592,7 @@
 
                 <div class="control-group" id="textWatermarkControl">
                     <label for="watermarkText">Текст водяного знака:</label>
-                    <input type="text" id="watermarkText" placeholder="Введите текст водяного знака" value="Watermark">
+                    <input type="text" id="watermarkText" placeholder="Например: @ваш_канал" value="@TgPosted">
                 </div>
 
                 <div class="control-group hidden" id="imageWatermarkControl">
@@ -626,8 +611,8 @@
                     <label for="opacitySlider">Прозрачность: <span id="opacityValue">70%</span></label>
                     <input type="range" id="opacitySlider" min="10" max="100" value="70">
                     <div class="range-value">
-                        <span>Меньше</span>
-                        <span>Больше</span>
+                        <span>Слабая</span>
+                        <span>Яркая</span>
                     </div>
                 </div>
 
@@ -697,37 +682,88 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="control-group saved-watermarks">
-                    <label>Сохраненные водяные знаки:</label>
-                    <div class="save-watermark-form">
-                        <input type="text" id="saveWatermarkName" class="save-watermark-input" placeholder="Название водяного знака">
-                        <button class="save-watermark-btn" id="saveWatermarkBtn">
-                            <i class="fas fa-save"></i> Сохранить
-                        </button>
-                    </div>
-                    
-                    <div class="saved-watermarks-list" id="savedWatermarksList">
-                        <!-- Здесь будут отображаться сохраненные водяные знаки -->
-                    </div>
-                </div>
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" id="resetAllBtn">
+                    <i class="fas fa-redo"></i> Сбросить всё
+                </button>
+                <button class="btn btn-primary" id="nextToStep2">
+                    Далее: Загрузить медиа <i class="fas fa-arrow-right"></i>
+                </button>
             </div>
         </div>
 
-        <div class="button-group">
-            <button class="btn btn-secondary" id="resetBtn">
-                <i class="fas fa-redo"></i> Сбросить
-            </button>
-            <button class="btn btn-primary" id="applyBtn" disabled>
-                <i class="fas fa-magic"></i> Применить водяной знак
-            </button>
-            <button class="btn btn-primary" id="downloadBtn" disabled>
-                <i class="fas fa-download"></i> Скачать результат
-            </button>
+        <!-- Шаг 2: Загрузка медиа -->
+        <div class="card step-content" id="step2Content">
+            <h2 class="card-title"><i class="fas fa-upload"></i> Загрузка медиа</h2>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="upload-text">Нажмите для загрузки фото или видео</div>
+                <div class="upload-subtext">Поддерживаются форматы: JPG, PNG, GIF, MP4, WEBM, MOV</div>
+                <input type="file" id="fileInput" accept="image/*,video/*" class="hidden">
+            </div>
+
+            <div class="preview-container">
+                <div class="preview-title">Предпросмотр медиа:</div>
+                <img id="mediaPreview" class="hidden">
+                <video id="videoPreview" class="hidden" controls></video>
+                <div id="noPreview" class="preview-title" style="text-align: center; width: 100%; padding: 40px 0; color: #999;">
+                    <i class="fas fa-image" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    Медиафайл не загружен
+                </div>
+                
+                <button class="change-media-btn hidden" id="changeMediaBtn" title="Заменить медиа">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                
+                <div id="mediaInfo" class="media-info hidden"></div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" id="backToStep1">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </button>
+                <button class="btn btn-primary" id="applyWatermarkBtn" disabled>
+                    <i class="fas fa-magic"></i> Наложить водяной знак
+                </button>
+            </div>
+        </div>
+
+        <!-- Шаг 3: Результат -->
+        <div class="card step-content" id="step3Content">
+            <h2 class="card-title"><i class="fas fa-check-circle"></i> Результат</h2>
+            
+            <div class="preview-container">
+                <div class="preview-title">Обработанное медиа:</div>
+                <img id="processedMediaPreview" class="hidden">
+                <video id="processedVideoPreview" class="hidden" controls></video>
+                <div id="noProcessedPreview" class="preview-title" style="text-align: center; width: 100%; padding: 40px 0; color: #999;">
+                    <i class="fas fa-water" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    Водяной знак ещё не наложен
+                </div>
+            </div>
+
+            <div class="result-actions">
+                <button class="btn btn-success" id="downloadResultBtn" disabled>
+                    <i class="fas fa-download"></i> Скачать результат
+                </button>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" id="backToStep2">
+                    <i class="fas fa-arrow-left"></i> Назад к загрузке
+                </button>
+                <button class="btn btn-primary" id="processNewBtn">
+                    <i class="fas fa-plus"></i> Обработать новый файл
+                </button>
+            </div>
         </div>
 
         <div class="footer">
-            <p>Вся обработка происходит на вашем устройстве. Качество и FPS видео не урезаются.</p>
+            <p>Вся обработка происходит на вашем устройстве. Качество и FPS видео сохраняются.</p>
             <p style="margin-top: 10px;">Для работы с Telegram: добавьте этот код в мини-приложение через BotFather</p>
         </div>
     </div>
@@ -743,14 +779,23 @@
         tg.expand();
         tg.enableClosingConfirmation();
         
-        // Элементы DOM
-        const fileInput = document.getElementById('fileInput');
-        const uploadArea = document.getElementById('uploadArea');
-        const mediaPreview = document.getElementById('mediaPreview');
-        const videoPreview = document.getElementById('videoPreview');
-        const noPreview = document.getElementById('noPreview');
-        const changeMediaBtn = document.getElementById('changeMediaBtn');
-        const mediaInfo = document.getElementById('mediaInfo');
+        // Элементы DOM для шагов
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step1Content = document.getElementById('step1Content');
+        const step2Content = document.getElementById('step2Content');
+        const step3Content = document.getElementById('step3Content');
+        
+        // Элементы для навигации
+        const nextToStep2Btn = document.getElementById('nextToStep2');
+        const backToStep1Btn = document.getElementById('backToStep1');
+        const backToStep2Btn = document.getElementById('backToStep2');
+        const applyWatermarkBtn = document.getElementById('applyWatermarkBtn');
+        const processNewBtn = document.getElementById('processNewBtn');
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        
+        // Элементы для водяного знака (из Шага 1)
         const watermarkText = document.getElementById('watermarkText');
         const watermarkImageInput = document.getElementById('watermarkImageInput');
         const watermarkUploadArea = document.getElementById('watermarkUploadArea');
@@ -758,28 +803,40 @@
         const opacitySlider = document.getElementById('opacitySlider');
         const opacityValue = document.getElementById('opacityValue');
         const positionButtons = document.querySelectorAll('.position-btn');
+        const textTypeOption = document.getElementById('textTypeOption');
+        const imageTypeOption = document.getElementById('imageTypeOption');
+        const textWatermarkControl = document.getElementById('textWatermarkControl');
+        const imageWatermarkControl = document.getElementById('imageWatermarkControl');
+        
+        // Элементы для загрузки медиа (из Шага 2)
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const mediaPreview = document.getElementById('mediaPreview');
+        const videoPreview = document.getElementById('videoPreview');
+        const noPreview = document.getElementById('noPreview');
+        const changeMediaBtn = document.getElementById('changeMediaBtn');
+        const mediaInfo = document.getElementById('mediaInfo');
+        
+        // Элементы для результата (из Шага 3)
+        const processedMediaPreview = document.getElementById('processedMediaPreview');
+        const processedVideoPreview = document.getElementById('processedVideoPreview');
+        const noProcessedPreview = document.getElementById('noProcessedPreview');
+        const downloadResultBtn = document.getElementById('downloadResultBtn');
+        
+        // Дополнительные элементы
         const movingWatermark = document.getElementById('movingWatermark');
         const motionSettings = document.getElementById('motionSettings');
         const speedSlider = document.getElementById('speedSlider');
         const speedValue = document.getElementById('speedValue');
         const motionType = document.getElementById('motionType');
-        const applyBtn = document.getElementById('applyBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const resetBtn = document.getElementById('resetBtn');
         const processingOverlay = document.getElementById('processingOverlay');
         const processingText = document.getElementById('processingText');
-        const textTypeOption = document.getElementById('textTypeOption');
-        const imageTypeOption = document.getElementById('imageTypeOption');
-        const textWatermarkControl = document.getElementById('textWatermarkControl');
-        const imageWatermarkControl = document.getElementById('imageWatermarkControl');
-        const saveWatermarkName = document.getElementById('saveWatermarkName');
-        const saveWatermarkBtn = document.getElementById('saveWatermarkBtn');
-        const savedWatermarksList = document.getElementById('savedWatermarksList');
         
         // Переменные состояния
+        let currentStep = 1;
         let originalMedia = null;
         let processedMedia = null;
-        let watermarkType = 'text'; // 'text' или 'image'
+        let watermarkType = 'text';
         let watermarkImage = null;
         let position = 'bottom-right';
         let isVideo = false;
@@ -787,49 +844,34 @@
         let videoDuration = 0;
         let originalFormat = '';
         let originalFileName = '';
-        let savedWatermarks = [];
-        let activeWatermarkId = null;
-        
-        // Переменные для плавного движения водяного знака
-        let watermarkState = {
-            x: 0,
-            y: 0,
-            dx: 2,
-            dy: 1.5,
-            width: 0,
-            height: 0,
-            angle: 0,
-            radius: 50,
-            centerX: 0,
-            centerY: 0
-        };
         
         // Инициализация
         init();
         
         function init() {
-            // Загружаем сохраненные водяные знаки из localStorage
-            loadSavedWatermarks();
+            // Навигация по шагам
+            nextToStep2Btn.addEventListener('click', () => goToStep(2));
+            backToStep1Btn.addEventListener('click', () => goToStep(1));
+            backToStep2Btn.addEventListener('click', () => goToStep(2));
+            applyWatermarkBtn.addEventListener('click', applyWatermark);
+            processNewBtn.addEventListener('click', () => goToStep(2));
+            resetAllBtn.addEventListener('click', resetAll);
             
-            // События для загрузки основного медиа
+            // Загрузка медиа (Шаг 2)
             uploadArea.addEventListener('click', () => fileInput.click());
             changeMediaBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleMediaUpload);
             
-            // События для переключения типа водяного знака
+            // Настройки водяного знака (Шаг 1)
             textTypeOption.addEventListener('click', () => setWatermarkType('text'));
             imageTypeOption.addEventListener('click', () => setWatermarkType('image'));
-            
-            // События для загрузки изображения водяного знака
             watermarkUploadArea.addEventListener('click', () => watermarkImageInput.click());
             watermarkImageInput.addEventListener('change', handleWatermarkImageUpload);
             
-            // События для слайдера прозрачности
             opacitySlider.addEventListener('input', () => {
                 opacityValue.textContent = `${opacitySlider.value}%`;
             });
             
-            // События для кнопок позиционирования
             positionButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     positionButtons.forEach(b => b.classList.remove('active'));
@@ -838,7 +880,6 @@
                 });
             });
             
-            // События для настройки движения
             movingWatermark.addEventListener('change', () => {
                 if (movingWatermark.checked) {
                     motionSettings.classList.add('active');
@@ -851,13 +892,27 @@
                 speedValue.textContent = speedSlider.value;
             });
             
-            // События для сохранения водяного знака
-            saveWatermarkBtn.addEventListener('click', saveWatermark);
+            // Скачивание результата
+            downloadResultBtn.addEventListener('click', downloadResult);
+        }
+        
+        function goToStep(step) {
+            // Обновляем индикатор шагов
+            [step1, step2, step3].forEach(s => s.classList.remove('active', 'completed'));
+            [step1Content, step2Content, step3Content].forEach(c => c.classList.remove('active'));
             
-            // События для кнопок действий
-            applyBtn.addEventListener('click', applyWatermark);
-            downloadBtn.addEventListener('click', downloadResult);
-            resetBtn.addEventListener('click', resetApp);
+            // Отмечаем предыдущие шаги как выполненные
+            for (let i = 1; i < step; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+            }
+            
+            // Активируем текущий шаг
+            document.getElementById(`step${step}`).classList.add('active');
+            document.getElementById(`step${step}Content`).classList.add('active');
+            
+            currentStep = step;
+            
+            tg.HapticFeedback.impactOccurred('light');
         }
         
         function setWatermarkType(type) {
@@ -874,207 +929,6 @@
                 textWatermarkControl.classList.add('hidden');
                 imageWatermarkControl.classList.remove('hidden');
             }
-        }
-        
-        function loadSavedWatermarks() {
-            const saved = localStorage.getItem('telegramWatermarks');
-            if (saved) {
-                try {
-                    savedWatermarks = JSON.parse(saved);
-                    renderSavedWatermarks();
-                } catch (e) {
-                    console.error('Ошибка загрузки сохраненных водяных знаков:', e);
-                    savedWatermarks = [];
-                }
-            } else {
-                savedWatermarks = [];
-            }
-        }
-        
-        function saveWatermarksToStorage() {
-            localStorage.setItem('telegramWatermarks', JSON.stringify(savedWatermarks));
-        }
-        
-        function saveWatermark() {
-            const name = saveWatermarkName.value.trim();
-            if (!name) {
-                alert('Введите название водяного знака');
-                return;
-            }
-            
-            // Проверяем, есть ли уже водяной знак с таким именем
-            const existingIndex = savedWatermarks.findIndex(w => w.name === name);
-            
-            const watermarkData = {
-                id: Date.now(),
-                name: name,
-                type: watermarkType,
-                text: watermarkText.value,
-                opacity: opacitySlider.value,
-                position: position,
-                movingEnabled: movingWatermark.checked,
-                speed: speedSlider.value,
-                motionType: motionType.value,
-                timestamp: new Date().toISOString()
-            };
-            
-            // Если это изображение, сохраняем DataURL
-            if (watermarkType === 'image' && watermarkImage) {
-                watermarkData.imageData = watermarkImage.src;
-            }
-            
-            if (existingIndex !== -1) {
-                // Обновляем существующий
-                savedWatermarks[existingIndex] = watermarkData;
-            } else {
-                // Добавляем новый
-                savedWatermarks.push(watermarkData);
-            }
-            
-            // Сохраняем в localStorage
-            saveWatermarksToStorage();
-            
-            // Очищаем поле ввода
-            saveWatermarkName.value = '';
-            
-            // Обновляем список
-            renderSavedWatermarks();
-            
-            // Выбираем сохраненный водяной знак
-            selectWatermark(watermarkData.id);
-            
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        
-        function renderSavedWatermarks() {
-            savedWatermarksList.innerHTML = '';
-            
-            if (savedWatermarks.length === 0) {
-                savedWatermarksList.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px;">Нет сохраненных водяных знаков</div>';
-                return;
-            }
-            
-            // Сортируем по времени создания (новые сверху)
-            const sortedWatermarks = [...savedWatermarks].sort((a, b) => 
-                new Date(b.timestamp) - new Date(a.timestamp)
-            );
-            
-            sortedWatermarks.forEach(watermark => {
-                const item = document.createElement('div');
-                item.className = 'saved-watermark-item';
-                if (watermark.id === activeWatermarkId) {
-                    item.classList.add('active');
-                }
-                item.dataset.id = watermark.id;
-                
-                item.innerHTML = `
-                    <div>
-                        <div class="watermark-item-name">${watermark.name}</div>
-                        <div class="watermark-item-type">${watermark.type === 'text' ? 'Текст' : 'Изображение'}</div>
-                    </div>
-                    <div class="watermark-item-actions">
-                        <button class="watermark-item-btn load-watermark-btn" title="Загрузить">
-                            <i class="fas fa-upload"></i>
-                        </button>
-                        <button class="watermark-item-btn delete-watermark-btn" title="Удалить">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                `;
-                
-                // Добавляем обработчики событий
-                item.querySelector('.load-watermark-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    loadWatermark(watermark.id);
-                });
-                
-                item.querySelector('.delete-watermark-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteWatermark(watermark.id);
-                });
-                
-                item.addEventListener('click', () => {
-                    loadWatermark(watermark.id);
-                });
-                
-                savedWatermarksList.appendChild(item);
-            });
-        }
-        
-        function selectWatermark(id) {
-            activeWatermarkId = id;
-            renderSavedWatermarks();
-        }
-        
-        function loadWatermark(id) {
-            const watermark = savedWatermarks.find(w => w.id === id);
-            if (!watermark) return;
-            
-            // Устанавливаем тип
-            setWatermarkType(watermark.type);
-            
-            // Устанавливаем текст
-            if (watermark.type === 'text') {
-                watermarkText.value = watermark.text;
-            }
-            
-            // Устанавливаем прозрачность
-            opacitySlider.value = watermark.opacity;
-            opacityValue.textContent = `${watermark.opacity}%`;
-            
-            // Устанавливаем позицию
-            positionButtons.forEach(btn => btn.classList.remove('active'));
-            const positionBtn = document.querySelector(`.position-btn[data-position="${watermark.position}"]`);
-            if (positionBtn) {
-                positionBtn.classList.add('active');
-                position = watermark.position;
-            }
-            
-            // Устанавливаем настройки движения (только если видео загружено)
-            if (isVideo) {
-                movingWatermark.checked = watermark.movingEnabled || false;
-                if (movingWatermark.checked) {
-                    motionSettings.classList.add('active');
-                } else {
-                    motionSettings.classList.remove('active');
-                }
-                
-                speedSlider.value = watermark.speed || 5;
-                speedValue.textContent = speedSlider.value;
-                motionType.value = watermark.motionType || 'bounce';
-            }
-            
-            // Если это изображение, загружаем его
-            if (watermark.type === 'image' && watermark.imageData) {
-                watermarkImage = new Image();
-                watermarkImage.src = watermark.imageData;
-                watermarkImage.onload = () => {
-                    watermarkImagePreview.src = watermark.imageData;
-                    watermarkImagePreview.classList.remove('hidden');
-                };
-            }
-            
-            // Выделяем выбранный водяной знак
-            selectWatermark(id);
-            
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        
-        function deleteWatermark(id) {
-            if (!confirm('Удалить этот водяной знак?')) return;
-            
-            const index = savedWatermarks.findIndex(w => w.id === id);
-            if (index !== -1) {
-                savedWatermarks.splice(index, 1);
-                saveWatermarksToStorage();
-                renderSavedWatermarks();
-                
-                if (activeWatermarkId === id) {
-                    activeWatermarkId = null;
-                }
-            }
-            
-            tg.HapticFeedback.impactOccurred('light');
         }
         
         function handleMediaUpload(event) {
@@ -1106,14 +960,10 @@
                     videoPreview.src = e.target.result;
                     videoPreview.load();
                     
-                    // Получаем длительность видео после загрузки метаданных
                     videoPreview.onloadedmetadata = function() {
                         videoDuration = videoPreview.duration;
                         updateMediaInfo(file, videoDuration);
                     };
-                    
-                    // Показываем опции для видео
-                    document.getElementById('videoOptions').classList.remove('hidden');
                 } else {
                     videoPreview.classList.add('hidden');
                     mediaPreview.classList.remove('hidden');
@@ -1121,21 +971,10 @@
                     
                     mediaPreview.src = e.target.result;
                     updateMediaInfo(file);
-                    
-                    // Скрываем опции для видео
-                    document.getElementById('videoOptions').classList.add('hidden');
-                    motionSettings.classList.remove('active');
                 }
                 
-                // Показываем кнопку замены медиа
                 changeMediaBtn.classList.remove('hidden');
-                
-                // Сбрасываем предыдущую обработку
-                processedMedia = null;
-                downloadBtn.disabled = true;
-                
-                // Активируем кнопку применения
-                applyBtn.disabled = false;
+                applyWatermarkBtn.disabled = false;
                 
                 tg.HapticFeedback.impactOccurred('light');
             };
@@ -1174,451 +1013,289 @@
             reader.readAsDataURL(file);
         }
         
-        function applyWatermark() {
+        function showProcessing(text) {
+            processingText.textContent = text;
+            processingOverlay.style.display = 'flex';
+        }
+        
+        function hideProcessing() {
+            processingOverlay.style.display = 'none';
+        }
+        
+        async function applyWatermark() {
             if (!originalMedia) return;
             
-            showProcessing('Применение водяного знака...');
+            showProcessing('Наложение водяного знака...');
+            applyWatermarkBtn.disabled = true;
             
-            if (isVideo) {
-                processVideo();
-            } else {
-                processImage();
+            try {
+                if (isVideo) {
+                    await processVideo();
+                } else {
+                    await processImage();
+                }
+                
+                // Переходим к шагу 3
+                goToStep(3);
+                downloadResultBtn.disabled = false;
+                
+                tg.HapticFeedback.impactOccurred('medium');
+            } catch (error) {
+                console.error('Ошибка обработки:', error);
+                alert('Произошла ошибка при обработке. Попробуйте снова.');
+            } finally {
+                hideProcessing();
+                applyWatermarkBtn.disabled = false;
             }
         }
         
         function processImage() {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            
-            img.onload = function() {
-                // Устанавливаем размеры canvas равными размерам изображения
-                canvas.width = img.width;
-                canvas.height = img.height;
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
                 
-                // Рисуем исходное изображение
-                ctx.drawImage(img, 0, 0);
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Применяем водяной знак
+                    applyWatermarkToCanvas(ctx, canvas.width, canvas.height);
+                    
+                    let mimeType = originalFormat;
+                    if (!mimeType || mimeType === 'image/gif') {
+                        mimeType = 'image/png';
+                    }
+                    
+                    try {
+                        processedMedia = canvas.toDataURL(mimeType);
+                    } catch (e) {
+                        processedMedia = canvas.toDataURL('image/png');
+                    }
+                    
+                    // Показываем результат
+                    processedMediaPreview.src = processedMedia;
+                    processedMediaPreview.classList.remove('hidden');
+                    processedVideoPreview.classList.add('hidden');
+                    noProcessedPreview.classList.add('hidden');
+                    
+                    resolve();
+                };
                 
-                // Применяем водяной знак
-                applyWatermarkToCanvas(ctx, canvas.width, canvas.height, 0, 1);
-                
-                // Получаем обработанное изображение в исходном формате
-                let mimeType = originalFormat;
-                if (!mimeType || mimeType === 'image/gif') {
-                    // Для GIF или неизвестных форматов используем PNG
-                    mimeType = 'image/png';
-                }
-                
-                try {
-                    processedMedia = canvas.toDataURL(mimeType);
-                } catch (e) {
-                    // Если формат не поддерживается, используем PNG
-                    processedMedia = canvas.toDataURL('image/png');
-                }
-                
-                // Показываем результат
-                mediaPreview.src = processedMedia;
-                
-                // Активируем кнопку скачивания
-                downloadBtn.disabled = false;
-                
-                hideProcessing();
-                
-                tg.HapticFeedback.impactOccurred('medium');
-            };
-            
-            img.src = originalMedia.url;
+                img.src = originalMedia.url;
+            });
         }
         
         function processVideo() {
-            showProcessing('Обработка видео... Это может занять некоторое время');
-            
-            // Создаем временное видео для извлечения кадров
-            const tempVideo = document.createElement('video');
-            tempVideo.src = originalMedia.url;
-            tempVideo.muted = true;
-            tempVideo.crossOrigin = 'anonymous';
-            
-            tempVideo.onloadeddata = function() {
-                // Создаем canvas для обработки
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+            return new Promise((resolve) => {
+                showProcessing('Обработка видео... Это может занять некоторое время');
                 
-                canvas.width = tempVideo.videoWidth;
-                canvas.height = tempVideo.videoHeight;
+                const tempVideo = document.createElement('video');
+                tempVideo.src = originalMedia.url;
+                tempVideo.muted = true;
+                tempVideo.crossOrigin = 'anonymous';
                 
-                // Сохраняем оригинальный FPS
-                let fps = 30; // По умолчанию
-                const totalFrames = Math.floor(videoDuration * fps);
-                let currentFrame = 0;
-                
-                // Инициализируем состояние водяного знака для движения
-                if (movingWatermark.checked) {
-                    initializeWatermarkState(canvas.width, canvas.height);
-                }
-                
-                // Очищаем предыдущие кадры
-                videoFrames = [];
-                
-                // Функция для обработки каждого кадра
-                function processFrame() {
-                    // Устанавливаем текущее время видео для нужного кадра
-                    tempVideo.currentTime = currentFrame / fps;
+                tempVideo.onloadeddata = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
                     
-                    // Ждем, пока видео обновится
-                    tempVideo.onseeked = function() {
-                        // Очищаем canvas
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    canvas.width = tempVideo.videoWidth;
+                    canvas.height = tempVideo.videoHeight;
+                    
+                    let fps = 30;
+                    const totalFrames = Math.floor(videoDuration * fps);
+                    let currentFrame = 0;
+                    
+                    videoFrames = [];
+                    
+                    function processFrame() {
+                        tempVideo.currentTime = currentFrame / fps;
                         
-                        // Рисуем текущий кадр
-                        ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
-                        
-                        // Применяем водяной знак
-                        applyWatermarkToCanvas(ctx, canvas.width, canvas.height, currentFrame, totalFrames);
-                        
-                        // Если включено движение, обновляем позицию водяного знака
-                        if (movingWatermark.checked) {
-                            updateWatermarkPosition(canvas.width, canvas.height, currentFrame, totalFrames);
-                        }
-                        
-                        // Сохраняем кадр
-                        videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
-                        
-                        // Переходим к следующему кадру
-                        currentFrame++;
-                        
-                        // Обновляем текст процесса
-                        processingText.textContent = `Обработка видео... ${Math.round((currentFrame / totalFrames) * 100)}%`;
-                        
-                        if (currentFrame < totalFrames) {
-                            // Обрабатываем следующий кадр
-                            setTimeout(processFrame, 0);
-                        } else {
-                            // Все кадры обработаны, создаем видео
-                            createVideoFromFrames(fps);
-                        }
-                    };
-                }
+                        tempVideo.onseeked = function() {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+                            applyWatermarkToCanvas(ctx, canvas.width, canvas.height);
+                            
+                            videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
+                            currentFrame++;
+                            
+                            processingText.textContent = `Обработка видео... ${Math.round((currentFrame / totalFrames) * 100)}%`;
+                            
+                            if (currentFrame < totalFrames) {
+                                setTimeout(processFrame, 0);
+                            } else {
+                                createVideoFromFrames(fps).then(resolve);
+                            }
+                        };
+                    }
+                    
+                    processFrame();
+                };
                 
-                // Начинаем обработку
-                processFrame();
-            };
-            
-            tempVideo.load();
+                tempVideo.load();
+            });
         }
         
-        function initializeWatermarkState(videoWidth, videoHeight) {
-            // Вычисляем размер водяного знака
-            let watermarkWidth, watermarkHeight;
-            
-            if (watermarkType === 'text' && watermarkText.value.trim()) {
-                // Для текста создаем временный canvas для измерения
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                const fontSize = Math.min(videoWidth, videoHeight) * 0.05;
-                
-                tempCtx.font = `bold ${fontSize}px Arial`;
-                const text = watermarkText.value.trim();
-                const textMetrics = tempCtx.measureText(text);
-                
-                watermarkWidth = textMetrics.width + fontSize; // Ширина текста + padding
-                watermarkHeight = fontSize * 2; // Высота шрифта * 2
-            } else if (watermarkType === 'image' && watermarkImage) {
-                watermarkWidth = videoWidth * 0.2;
-                watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
-            } else {
-                // Значения по умолчанию
-                watermarkWidth = videoWidth * 0.2;
-                watermarkHeight = videoHeight * 0.1;
-            }
-            
-            // Устанавливаем начальное состояние водяного знака
-            watermarkState.width = watermarkWidth;
-            watermarkState.height = watermarkHeight;
-            
-            // Устанавливаем начальную позицию в зависимости от выбранного положения
-            switch(position) {
-                case 'top-left':
-                    watermarkState.x = 10;
-                    watermarkState.y = 10;
-                    break;
-                case 'top-center':
-                    watermarkState.x = (videoWidth - watermarkWidth) / 2;
-                    watermarkState.y = 10;
-                    break;
-                case 'top-right':
-                    watermarkState.x = videoWidth - watermarkWidth - 10;
-                    watermarkState.y = 10;
-                    break;
-                case 'center-left':
-                    watermarkState.x = 10;
-                    watermarkState.y = (videoHeight - watermarkHeight) / 2;
-                    break;
-                case 'center':
-                    watermarkState.x = (videoWidth - watermarkWidth) / 2;
-                    watermarkState.y = (videoHeight - watermarkHeight) / 2;
-                    break;
-                case 'center-right':
-                    watermarkState.x = videoWidth - watermarkWidth - 10;
-                    watermarkState.y = (videoHeight - watermarkHeight) / 2;
-                    break;
-                case 'bottom-left':
-                    watermarkState.x = 10;
-                    watermarkState.y = videoHeight - watermarkHeight - 10;
-                    break;
-                case 'bottom-center':
-                    watermarkState.x = (videoWidth - watermarkWidth) / 2;
-                    watermarkState.y = videoHeight - watermarkHeight - 10;
-                    break;
-                case 'bottom-right':
-                    watermarkState.x = videoWidth - watermarkWidth - 10;
-                    watermarkState.y = videoHeight - watermarkHeight - 10;
-                    break;
-            }
-            
-            // Начальная скорость зависит от настроек скорости
-            const speed = parseInt(speedSlider.value);
-            watermarkState.dx = speed / 2;
-            watermarkState.dy = speed / 3;
-            
-            // Для кругового движения
-            watermarkState.centerX = videoWidth / 2;
-            watermarkState.centerY = videoHeight / 2;
-            watermarkState.radius = Math.min(videoWidth, videoHeight) * 0.3;
-            watermarkState.angle = 0;
-        }
-        
-        function updateWatermarkPosition(videoWidth, videoHeight, currentFrame, totalFrames) {
-            const speed = parseInt(speedSlider.value) / 10;
-            const motion = motionType.value;
-            
-            switch(motion) {
-                case 'bounce':
-                    // Движение с отскоком от краев
-                    watermarkState.x += watermarkState.dx * speed;
-                    watermarkState.y += watermarkState.dy * speed;
-                    
-                    // Проверка столкновения с границами
-                    if (watermarkState.x <= 0) {
-                        watermarkState.x = 0;
-                        watermarkState.dx = Math.abs(watermarkState.dx);
-                    } else if (watermarkState.x + watermarkState.width >= videoWidth) {
-                        watermarkState.x = videoWidth - watermarkState.width;
-                        watermarkState.dx = -Math.abs(watermarkState.dx);
-                    }
-                    
-                    if (watermarkState.y <= 0) {
-                        watermarkState.y = 0;
-                        watermarkState.dy = Math.abs(watermarkState.dy);
-                    } else if (watermarkState.y + watermarkState.height >= videoHeight) {
-                        watermarkState.y = videoHeight - watermarkState.height;
-                        watermarkState.dy = -Math.abs(watermarkState.dy);
-                    }
-                    break;
-                    
-                case 'circular':
-                    // Круговое движение
-                    watermarkState.angle += speed * 0.05;
-                    watermarkState.x = watermarkState.centerX + Math.cos(watermarkState.angle) * watermarkState.radius - watermarkState.width / 2;
-                    watermarkState.y = watermarkState.centerY + Math.sin(watermarkState.angle) * watermarkState.radius - watermarkState.height / 2;
-                    break;
-                    
-                case 'horizontal':
-                    // Горизонтальное движение
-                    watermarkState.x += watermarkState.dx * speed;
-                    
-                    if (watermarkState.x <= 0) {
-                        watermarkState.x = 0;
-                        watermarkState.dx = Math.abs(watermarkState.dx);
-                    } else if (watermarkState.x + watermarkState.width >= videoWidth) {
-                        watermarkState.x = videoWidth - watermarkState.width;
-                        watermarkState.dx = -Math.abs(watermarkState.dx);
-                    }
-                    break;
-                    
-                case 'vertical':
-                    // Вертикальное движение
-                    watermarkState.y += watermarkState.dy * speed;
-                    
-                    if (watermarkState.y <= 0) {
-                        watermarkState.y = 0;
-                        watermarkState.dy = Math.abs(watermarkState.dy);
-                    } else if (watermarkState.y + watermarkState.height >= videoHeight) {
-                        watermarkState.y = videoHeight - watermarkState.height;
-                        watermarkState.dy = -Math.abs(watermarkState.dy);
-                    }
-                    break;
-            }
-        }
-        
-        function applyWatermarkToCanvas(ctx, width, height, frameIndex = 0, totalFrames = 1) {
+        function applyWatermarkToCanvas(ctx, width, height) {
             const opacity = parseInt(opacitySlider.value) / 100;
             
-            // Если включена подвижная водяная марка для видео, используем текущие координаты
-            let x, y;
-            if (isVideo && movingWatermark.checked && totalFrames > 1) {
-                x = watermarkState.x;
-                y = watermarkState.y;
-            } else {
-                // Иначе используем выбранную позицию
-                switch(position) {
-                    case 'top-left':
-                        x = 10;
-                        y = 10;
-                        break;
-                    case 'top-center':
-                        x = (width - (watermarkType === 'text' ? 100 : width * 0.2)) / 2;
-                        y = 10;
-                        break;
-                    case 'top-right':
-                        x = width - (watermarkType === 'text' ? 110 : width * 0.2 + 10);
-                        y = 10;
-                        break;
-                    case 'center-left':
-                        x = 10;
-                        y = (height - (watermarkType === 'text' ? 50 : height * 0.1)) / 2;
-                        break;
-                    case 'center':
-                        x = (width - (watermarkType === 'text' ? 100 : width * 0.2)) / 2;
-                        y = (height - (watermarkType === 'text' ? 50 : height * 0.1)) / 2;
-                        break;
-                    case 'center-right':
-                        x = width - (watermarkType === 'text' ? 110 : width * 0.2 + 10);
-                        y = (height - (watermarkType === 'text' ? 50 : height * 0.1)) / 2;
-                        break;
-                    case 'bottom-left':
-                        x = 10;
-                        y = height - (watermarkType === 'text' ? 60 : height * 0.1 + 10);
-                        break;
-                    case 'bottom-center':
-                        x = (width - (watermarkType === 'text' ? 100 : width * 0.2)) / 2;
-                        y = height - (watermarkType === 'text' ? 60 : height * 0.1 + 10);
-                        break;
-                    case 'bottom-right':
-                        x = width - (watermarkType === 'text' ? 110 : width * 0.2 + 10);
-                        y = height - (watermarkType === 'text' ? 60 : height * 0.1 + 10);
-                        break;
-                }
-            }
-            
-            // Устанавливаем прозрачность
-            ctx.globalAlpha = opacity;
+            // Вычисляем позицию
+            let x, y, watermarkWidth, watermarkHeight;
             
             if (watermarkType === 'text' && watermarkText.value.trim()) {
-                // Текстовая водяная марка
                 const fontSize = Math.min(width, height) * 0.05;
                 ctx.font = `bold ${fontSize}px Arial`;
+                const text = watermarkText.value.trim();
+                const textMetrics = ctx.measureText(text);
+                
+                watermarkWidth = textMetrics.width + fontSize;
+                watermarkHeight = fontSize * 2;
+                
+                // Позиционируем текст
+                x = getPositionX(width, watermarkWidth);
+                y = getPositionY(height, watermarkHeight);
+                
+                // Рисуем текст
+                ctx.globalAlpha = opacity;
                 ctx.fillStyle = 'white';
                 ctx.strokeStyle = 'black';
                 ctx.lineWidth = 2;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                const text = watermarkText.value.trim();
-                
-                // Рисуем текст с обводкой
-                ctx.strokeText(text, x + (watermarkType === 'text' ? 50 : 0), y + (watermarkType === 'text' ? 25 : 0));
-                ctx.fillText(text, x + (watermarkType === 'text' ? 50 : 0), y + (watermarkType === 'text' ? 25 : 0));
+                ctx.strokeText(text, x + watermarkWidth/2, y + watermarkHeight/2);
+                ctx.fillText(text, x + watermarkWidth/2, y + watermarkHeight/2);
                 
             } else if (watermarkType === 'image' && watermarkImage) {
-                // Водяная марка из изображения
-                const watermarkWidth = width * 0.2;
-                const watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+                watermarkWidth = width * 0.2;
+                watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
                 
-                // Рисуем изображение водяной марки
+                x = getPositionX(width, watermarkWidth);
+                y = getPositionY(height, watermarkHeight);
+                
+                ctx.globalAlpha = opacity;
                 ctx.drawImage(watermarkImage, x, y, watermarkWidth, watermarkHeight);
             }
             
-            // Сбрасываем прозрачность
             ctx.globalAlpha = 1.0;
         }
         
+        function getPositionX(canvasWidth, watermarkWidth) {
+            const padding = 10;
+            
+            switch(position) {
+                case 'top-left':
+                case 'center-left':
+                case 'bottom-left':
+                    return padding;
+                case 'top-center':
+                case 'center':
+                case 'bottom-center':
+                    return (canvasWidth - watermarkWidth) / 2;
+                case 'top-right':
+                case 'center-right':
+                case 'bottom-right':
+                    return canvasWidth - watermarkWidth - padding;
+                default:
+                    return padding;
+            }
+        }
+        
+        function getPositionY(canvasHeight, watermarkHeight) {
+            const padding = 10;
+            
+            switch(position) {
+                case 'top-left':
+                case 'top-center':
+                case 'top-right':
+                    return padding;
+                case 'center-left':
+                case 'center':
+                case 'center-right':
+                    return (canvasHeight - watermarkHeight) / 2;
+                case 'bottom-left':
+                case 'bottom-center':
+                case 'bottom-right':
+                    return canvasHeight - watermarkHeight - padding;
+                default:
+                    return padding;
+            }
+        }
+        
         function createVideoFromFrames(fps) {
-            showProcessing('Создание видео...');
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Устанавливаем размеры canvas
-            canvas.width = videoPreview.videoWidth;
-            canvas.height = videoPreview.videoHeight;
-            
-            // Создаем поток с canvas
-            const stream = canvas.captureStream(fps);
-            
-            // Определяем формат для записи видео
-            let mimeType = 'video/webm;codecs=vp9';
-            
-            // Пытаемся сохранить в исходном формате видео
-            if (originalFormat.includes('mp4')) {
-                // Пробуем использовать кодек для MP4
-                if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E')) {
+            return new Promise((resolve) => {
+                showProcessing('Создание видео...');
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = videoPreview.videoWidth;
+                canvas.height = videoPreview.videoHeight;
+                
+                const stream = canvas.captureStream(fps);
+                
+                let mimeType = 'video/webm;codecs=vp9';
+                if (originalFormat.includes('mp4') && MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E')) {
                     mimeType = 'video/mp4;codecs=avc1.42E01E';
                 }
-            } else if (originalFormat.includes('webm')) {
-                mimeType = 'video/webm;codecs=vp9';
-            }
-            
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: mimeType,
-                videoBitsPerSecond: 5000000 // Высокое качество (5 Mbps)
-            });
-            
-            const chunks = [];
-            
-            mediaRecorder.ondataavailable = function(event) {
-                if (event.data.size > 0) {
-                    chunks.push(event.data);
-                }
-            };
-            
-            mediaRecorder.onstop = function() {
-                const blob = new Blob(chunks, { 
-                    type: mimeType.split(';')[0] // Берем только MIME тип без кодеков
+                
+                const mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 5000000
                 });
-                const url = URL.createObjectURL(blob);
-                processedMedia = {
-                    url: url,
-                    type: mimeType.split(';')[0]
+                
+                const chunks = [];
+                
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
                 };
                 
-                // Показываем результат
-                videoPreview.src = url;
+                mediaRecorder.onstop = function() {
+                    const blob = new Blob(chunks, { 
+                        type: mimeType.split(';')[0]
+                    });
+                    const url = URL.createObjectURL(blob);
+                    processedMedia = {
+                        url: url,
+                        type: mimeType.split(';')[0]
+                    };
+                    
+                    processedVideoPreview.src = url;
+                    processedVideoPreview.classList.remove('hidden');
+                    processedMediaPreview.classList.add('hidden');
+                    noProcessedPreview.classList.add('hidden');
+                    
+                    resolve();
+                };
                 
-                // Активируем кнопку скачивания
-                downloadBtn.disabled = false;
+                mediaRecorder.start();
                 
-                hideProcessing();
+                let frameIndex = 0;
+                const totalFrames = videoFrames.length;
                 
-                tg.HapticFeedback.impactOccurred('medium');
-            };
-            
-            // Начинаем запись
-            mediaRecorder.start();
-            
-            // Воспроизводим кадры
-            let frameIndex = 0;
-            const totalFrames = videoFrames.length;
-            
-            function drawNextFrame() {
-                if (frameIndex >= totalFrames) {
-                    mediaRecorder.stop();
-                    return;
+                function drawNextFrame() {
+                    if (frameIndex >= totalFrames) {
+                        mediaRecorder.stop();
+                        return;
+                    }
+                    
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        frameIndex++;
+                        setTimeout(drawNextFrame, 1000 / fps);
+                    };
+                    
+                    img.src = videoFrames[frameIndex];
                 }
                 
-                const img = new Image();
-                img.onload = function() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    frameIndex++;
-                    setTimeout(drawNextFrame, 1000 / fps);
-                };
-                
-                img.src = videoFrames[frameIndex];
-            }
-            
-            drawNextFrame();
+                drawNextFrame();
+            });
         }
         
         function downloadResult() {
@@ -1629,21 +1306,14 @@
             const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
             if (isVideo) {
-                // Для видео
                 link.href = processedMedia.url;
-                
-                // Определяем расширение в зависимости от формата
                 let extension = 'webm';
                 if (processedMedia.type === 'video/mp4') {
                     extension = 'mp4';
                 }
-                
-                link.download = `watermarked_${originalName}_${timestamp}.${extension}`;
+                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
             } else {
-                // Для изображений
                 link.href = processedMedia;
-                
-                // Определяем расширение в зависимости от формата
                 let extension = 'png';
                 if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
                     extension = 'jpg';
@@ -1652,8 +1322,7 @@
                 } else if (originalFormat.includes('gif')) {
                     extension = 'gif';
                 }
-                
-                link.download = `watermarked_${originalName}_${timestamp}.${extension}`;
+                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
             }
             
             document.body.appendChild(link);
@@ -1663,46 +1332,37 @@
             tg.HapticFeedback.impactOccurred('medium');
         }
         
-        function resetApp() {
-            // Сброс состояния приложения
+        function resetAll() {
+            // Сбрасываем все шаги
+            currentStep = 1;
+            goToStep(1);
+            
+            // Сброс состояния
             originalMedia = null;
             processedMedia = null;
             watermarkImage = null;
             videoFrames = [];
-            originalFormat = '';
-            originalFileName = '';
-            
-            // Сброс состояния водяного знака
-            watermarkState = {
-                x: 0,
-                y: 0,
-                dx: 2,
-                dy: 1.5,
-                width: 0,
-                height: 0,
-                angle: 0,
-                radius: 50,
-                centerX: 0,
-                centerY: 0
-            };
             
             // Сброс UI
             mediaPreview.classList.add('hidden');
             videoPreview.classList.add('hidden');
             noPreview.classList.remove('hidden');
+            changeMediaBtn.classList.add('hidden');
+            mediaInfo.classList.add('hidden');
+            
+            processedMediaPreview.classList.add('hidden');
+            processedVideoPreview.classList.add('hidden');
+            noProcessedPreview.classList.remove('hidden');
             
             watermarkImagePreview.classList.add('hidden');
             watermarkImageInput.value = '';
             fileInput.value = '';
             
-            changeMediaBtn.classList.add('hidden');
-            mediaInfo.classList.add('hidden');
-            
-            applyBtn.disabled = true;
-            downloadBtn.disabled = true;
+            applyWatermarkBtn.disabled = true;
+            downloadResultBtn.disabled = true;
             
             // Сброс настроек
-            watermarkText.value = 'Watermark';
+            watermarkText.value = '@TgPosted';
             opacitySlider.value = 70;
             opacityValue.textContent = '70%';
             movingWatermark.checked = false;
@@ -1710,26 +1370,14 @@
             speedSlider.value = 5;
             speedValue.textContent = '5';
             motionType.value = 'bounce';
-            saveWatermarkName.value = '';
             
-            // Сброс позиции
             positionButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelector('.position-btn[data-position="bottom-right"]').classList.add('active');
             position = 'bottom-right';
             
-            // Сброс типа водяного знака
             setWatermarkType('text');
             
             tg.HapticFeedback.impactOccurred('light');
-        }
-        
-        function showProcessing(text) {
-            processingText.textContent = text;
-            processingOverlay.style.display = 'flex';
-        }
-        
-        function hideProcessing() {
-            processingOverlay.style.display = 'none';
         }
     </script>
 </body>
