@@ -654,6 +654,86 @@
             border-color: #0072ff;
         }
 
+        /* Стили для выбора цвета */
+        .color-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .color-option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .color-option-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+            background: transparent;
+        }
+
+        .color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker::-webkit-color-swatch {
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .color-value {
+            font-size: 14px;
+            color: #666;
+            min-width: 80px;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .color-preset {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .color-preset:hover {
+            transform: scale(1.1);
+            border-color: #0072ff;
+        }
+
+        .color-preset.active {
+            border-color: #0072ff;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2);
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -699,6 +779,10 @@
             .saved-watermark-item {
                 min-width: 100px;
                 padding: 8px;
+            }
+            
+            .color-presets {
+                justify-content: center;
             }
         }
     </style>
@@ -760,6 +844,35 @@
                 <div class="control-group" id="textWatermarkControl">
                     <label for="watermarkText">Текст водяного знака:</label>
                     <input type="text" id="watermarkText" placeholder="Например: @ваш_канал" value="@TgPosted">
+                    
+                    <!-- Выбор цвета текста -->
+                    <div class="color-options">
+                        <div class="color-option-group">
+                            <div class="color-option-label">
+                                <span>Цвет текста:</span>
+                                <span class="color-value" id="textColorValue">#FFFFFF</span>
+                            </div>
+                            <div class="color-picker-container">
+                                <input type="color" id="textColorPicker" class="color-picker" value="#FFFFFF">
+                                <div class="color-presets" id="textColorPresets">
+                                    <!-- Цвета будут добавлены через JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="color-option-group">
+                            <div class="color-option-label">
+                                <span>Цвет обводки:</span>
+                                <span class="color-value" id="strokeColorValue">#000000</span>
+                            </div>
+                            <div class="color-picker-container">
+                                <input type="color" id="strokeColorPicker" class="color-picker" value="#000000">
+                                <div class="color-presets" id="strokeColorPresets">
+                                    <!-- Цвета будут добавлены через JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="control-group hidden" id="imageWatermarkControl">
@@ -990,6 +1103,14 @@
         const textWatermarkControl = document.getElementById('textWatermarkControl');
         const imageWatermarkControl = document.getElementById('imageWatermarkControl');
         
+        // Элементы для цвета текста
+        const textColorPicker = document.getElementById('textColorPicker');
+        const textColorValue = document.getElementById('textColorValue');
+        const textColorPresets = document.getElementById('textColorPresets');
+        const strokeColorPicker = document.getElementById('strokeColorPicker');
+        const strokeColorValue = document.getElementById('strokeColorValue');
+        const strokeColorPresets = document.getElementById('strokeColorPresets');
+        
         // Элементы для загрузки медиа (из Шага 2)
         const fileInput = document.getElementById('fileInput');
         const uploadArea = document.getElementById('uploadArea');
@@ -1034,12 +1155,32 @@
         let originalFileName = '';
         let savedWatermarks = [];
         
+        // Цвета по умолчанию
+        let textColor = '#FFFFFF';
+        let strokeColor = '#000000';
+        
+        // Предустановленные цвета
+        const colorPresets = {
+            textColors: [
+                '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF',
+                '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080',
+                '#008000', '#FFC0CB', '#A52A2A', '#808080', '#FFD700'
+            ],
+            strokeColors: [
+                '#000000', '#FFFFFF', '#333333', '#666666', '#999999',
+                '#CCCCCC', '#FF0000', '#00FF00', '#0000FF', '#FFA500'
+            ]
+        };
+        
         // Инициализация
         init();
         
         function init() {
             // Загружаем сохраненные водяные знаки
             loadSavedWatermarks();
+            
+            // Инициализируем выбор цвета
+            initColorPickers();
             
             // Навигация по шагам
             nextToStep2Btn.addEventListener('click', () => goToStep(2));
@@ -1091,6 +1232,102 @@
             downloadResultBtn.addEventListener('click', downloadResult);
         }
         
+        function initColorPickers() {
+            // Устанавливаем начальные значения
+            textColorPicker.value = textColor;
+            strokeColorPicker.value = strokeColor;
+            
+            // Обновляем отображаемые значения
+            updateColorValues();
+            
+            // Создаем пресеты цветов для текста
+            colorPresets.textColors.forEach(color => {
+                const preset = document.createElement('div');
+                preset.className = 'color-preset';
+                preset.style.backgroundColor = color;
+                preset.dataset.color = color;
+                preset.title = color;
+                
+                preset.addEventListener('click', () => {
+                    textColorPicker.value = color;
+                    textColor = color;
+                    updateColorValues();
+                    highlightPreset(preset, textColorPresets);
+                });
+                
+                textColorPresets.appendChild(preset);
+            });
+            
+            // Создаем пресеты цветов для обводки
+            colorPresets.strokeColors.forEach(color => {
+                const preset = document.createElement('div');
+                preset.className = 'color-preset';
+                preset.style.backgroundColor = color;
+                preset.dataset.color = color;
+                preset.title = color;
+                
+                preset.addEventListener('click', () => {
+                    strokeColorPicker.value = color;
+                    strokeColor = color;
+                    updateColorValues();
+                    highlightPreset(preset, strokeColorPresets);
+                });
+                
+                strokeColorPresets.appendChild(preset);
+            });
+            
+            // Обработчики для цветовых пикеров
+            textColorPicker.addEventListener('input', (e) => {
+                textColor = e.target.value;
+                updateColorValues();
+                highlightPresetByColor(textColor, textColorPresets);
+            });
+            
+            strokeColorPicker.addEventListener('input', (e) => {
+                strokeColor = e.target.value;
+                updateColorValues();
+                highlightPresetByColor(strokeColor, strokeColorPresets);
+            });
+            
+            // Выделяем пресеты по умолчанию
+            highlightPresetByColor(textColor, textColorPresets);
+            highlightPresetByColor(strokeColor, strokeColorPresets);
+        }
+        
+        function updateColorValues() {
+            textColorValue.textContent = textColor;
+            strokeColorValue.textContent = strokeColor;
+        }
+        
+        function highlightPreset(presetElement, container) {
+            // Снимаем выделение со всех пресетов в контейнере
+            container.querySelectorAll('.color-preset').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            // Выделяем выбранный пресет
+            presetElement.classList.add('active');
+        }
+        
+        function highlightPresetByColor(color, container) {
+            const presets = container.querySelectorAll('.color-preset');
+            let found = false;
+            
+            presets.forEach(preset => {
+                if (preset.dataset.color === color) {
+                    preset.classList.add('active');
+                    found = true;
+                } else {
+                    preset.classList.remove('active');
+                }
+            });
+            
+            // Если цвет не найден среди пресетов, снимаем выделение со всех
+            if (!found) {
+                presets.forEach(preset => preset.classList.remove('active'));
+            }
+        }
+        
         function loadSavedWatermarks() {
             const saved = localStorage.getItem('savedWatermarks');
             if (saved) {
@@ -1118,7 +1355,13 @@
                 item.dataset.index = index;
                 
                 if (watermark.type === 'text') {
+                    // Для текстовых водяных знаков показываем цвет
+                    const colorBox = watermark.textColor ? 
+                        `<div style="width: 100%; height: 20px; background-color: ${watermark.textColor}; border-radius: 3px; margin-bottom: 5px;"></div>` : 
+                        '';
+                    
                     item.innerHTML = `
+                        ${colorBox}
                         <div class="saved-watermark-text">${watermark.text}</div>
                         <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}%</div>
                         <div class="saved-watermark-actions">
@@ -1178,6 +1421,19 @@
             // Загружаем данные водяного знака
             if (watermark.type === 'text') {
                 watermarkText.value = watermark.text;
+                
+                // Устанавливаем цвета, если они есть
+                if (watermark.textColor) {
+                    textColor = watermark.textColor;
+                    textColorPicker.value = textColor;
+                }
+                if (watermark.strokeColor) {
+                    strokeColor = watermark.strokeColor;
+                    strokeColorPicker.value = strokeColor;
+                }
+                updateColorValues();
+                highlightPresetByColor(textColor, textColorPresets);
+                highlightPresetByColor(strokeColor, strokeColorPresets);
             } else {
                 watermarkImage = new Image();
                 watermarkImage.src = watermark.imageData;
@@ -1212,6 +1468,8 @@
                     return;
                 }
                 watermarkData.text = text;
+                watermarkData.textColor = textColor;
+                watermarkData.strokeColor = strokeColor;
             } else {
                 if (!watermarkImage) {
                     alert('Загрузите изображение водяного знака');
@@ -1592,14 +1850,15 @@
                 x = getPositionX(width, watermarkWidth);
                 y = getPositionY(height, watermarkHeight);
                 
-                // Рисуем текст
+                // Рисуем текст с выбранными цветами
                 ctx.globalAlpha = opacity;
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = 'black';
+                ctx.fillStyle = textColor;
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = 2;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
+                // Рисуем обводку и заливку
                 ctx.strokeText(text, x + watermarkWidth/2, y + watermarkHeight/2);
                 ctx.fillText(text, x + watermarkWidth/2, y + watermarkHeight/2);
                 
@@ -1824,6 +2083,15 @@
             positionButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelector('.position-btn[data-position="bottom-right"]').classList.add('active');
             position = 'bottom-right';
+            
+            // Сброс цветов
+            textColor = '#FFFFFF';
+            strokeColor = '#000000';
+            textColorPicker.value = textColor;
+            strokeColorPicker.value = strokeColor;
+            updateColorValues();
+            highlightPresetByColor(textColor, textColorPresets);
+            highlightPresetByColor(strokeColor, strokeColorPresets);
             
             setWatermarkType('text');
             
