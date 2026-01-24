@@ -505,7 +505,7 @@
             width: 60px;
             height: 60px;
             border: 5px solid rgba(0, 114, 255, 0.1);
-            border-top-color: #0072ff;
+            border-top-color = #0072ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -594,7 +594,7 @@
         }
 
         .saved-watermark-item.active {
-            border-color: #0072ff;
+            border-color = #0072ff;
             background: rgba(0, 114, 255, 0.1);
         }
 
@@ -791,6 +791,61 @@
             opacity: 0.7;
         }
 
+        /* Стили для размера текста */
+        .text-size-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .text-size-preset {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .text-size-preset:hover {
+            border-color: #0072ff;
+            transform: scale(1.05);
+        }
+
+        .text-size-preset.active {
+            background: rgba(0, 114, 255, 0.1);
+            border-color: #0072ff;
+            color: #0072ff;
+            transform: scale(1.05);
+        }
+
+        /* Стили для уведомлений */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -844,6 +899,10 @@
             
             .motion-presets {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .text-size-presets {
+                justify-content: center;
             }
         }
     </style>
@@ -906,6 +965,20 @@
                     <label for="watermarkText">Текст водяного знака:</label>
                     <input type="text" id="watermarkText" placeholder="Например: @ваш_канал" value="@TgPosted">
                     
+                    <!-- Выбор размера текста -->
+                    <div class="control-group">
+                        <label for="textSizeSlider">Размер текста: <span id="textSizeValue">5%</span></label>
+                        <input type="range" id="textSizeSlider" min="1" max="15" value="5" step="0.5">
+                        <div class="range-value">
+                            <span>Маленький</span>
+                            <span>Большой</span>
+                        </div>
+                        
+                        <div class="text-size-presets" id="textSizePresets">
+                            <!-- Пресеты размера будут добавлены через JavaScript -->
+                        </div>
+                    </div>
+                    
                     <!-- Выбор цвета текста -->
                     <div class="color-options">
                         <div class="color-option-group">
@@ -946,6 +1019,16 @@
                         <input type="file" id="watermarkImageInput" accept="image/*" class="hidden">
                     </div>
                     <img id="watermarkImagePreview" class="hidden" style="max-width: 100px; max-height: 100px; margin-top: 10px; border-radius: 5px;">
+                    
+                    <!-- Размер изображения -->
+                    <div class="control-group">
+                        <label for="imageSizeSlider">Размер изображения: <span id="imageSizeValue">20%</span></label>
+                        <input type="range" id="imageSizeSlider" min="5" max="50" value="20" step="1">
+                        <div class="range-value">
+                            <span>Маленький</span>
+                            <span>Большой</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -1186,6 +1269,15 @@
         const strokeColorValue = document.getElementById('strokeColorValue');
         const strokeColorPresets = document.getElementById('strokeColorPresets');
         
+        // Элементы для размера текста
+        const textSizeSlider = document.getElementById('textSizeSlider');
+        const textSizeValue = document.getElementById('textSizeValue');
+        const textSizePresets = document.getElementById('textSizePresets');
+        
+        // Элементы для размера изображения
+        const imageSizeSlider = document.getElementById('imageSizeSlider');
+        const imageSizeValue = document.getElementById('imageSizeValue');
+        
         // Элементы для движения
         const movingWatermark = document.getElementById('movingWatermark');
         const motionSettings = document.getElementById('motionSettings');
@@ -1239,6 +1331,10 @@
         let textColor = '#FFFFFF';
         let strokeColor = '#000000';
         
+        // Размеры по умолчанию
+        let textSize = 5; // в процентах от минимальной стороны
+        let imageSize = 20; // в процентах от ширины
+        
         // Состояние водяного знака для движения
         let watermarkState = {
             x: 0,
@@ -1272,6 +1368,16 @@
             ]
         };
         
+        // Пресеты размера текста
+        const textSizePresetsData = [
+            { value: 2, label: 'Очень маленький' },
+            { value: 3, label: 'Маленький' },
+            { value: 5, label: 'Стандартный' },
+            { value: 7, label: 'Средний' },
+            { value: 10, label: 'Большой' },
+            { value: 12, label: 'Очень большой' }
+        ];
+        
         // Пресеты движения
         const motionPresetsData = [
             { name: 'Медленное плавание', speed: 3, type: 'bounce', amplitude: 50, frequency: 0.3 },
@@ -1294,6 +1400,9 @@
             
             // Инициализируем выбор цвета
             initColorPickers();
+            
+            // Инициализируем выбор размера текста
+            initTextSizePresets();
             
             // Инициализируем пресеты движения
             initMotionPresets();
@@ -1322,6 +1431,16 @@
             
             opacitySlider.addEventListener('input', () => {
                 opacityValue.textContent = `${opacitySlider.value}%`;
+            });
+            
+            textSizeSlider.addEventListener('input', () => {
+                textSizeValue.textContent = `${textSizeSlider.value}%`;
+                textSize = parseFloat(textSizeSlider.value);
+            });
+            
+            imageSizeSlider.addEventListener('input', () => {
+                imageSizeValue.textContent = `${imageSizeSlider.value}%`;
+                imageSize = parseFloat(imageSizeSlider.value);
             });
             
             positionButtons.forEach(btn => {
@@ -1421,6 +1540,38 @@
             // Выделяем пресеты по умолчанию
             highlightPresetByColor(textColor, textColorPresets);
             highlightPresetByColor(strokeColor, strokeColorPresets);
+        }
+        
+        function initTextSizePresets() {
+            textSizePresetsData.forEach(preset => {
+                const presetElement = document.createElement('div');
+                presetElement.className = 'text-size-preset';
+                presetElement.dataset.size = preset.value;
+                presetElement.textContent = preset.label;
+                
+                presetElement.addEventListener('click', () => {
+                    // Устанавливаем значение размера
+                    textSizeSlider.value = preset.value;
+                    textSizeValue.textContent = `${preset.value}%`;
+                    textSize = preset.value;
+                    
+                    // Выделяем выбранный пресет
+                    document.querySelectorAll('.text-size-preset').forEach(p => {
+                        p.classList.remove('active');
+                    });
+                    presetElement.classList.add('active');
+                    
+                    tg.HapticFeedback.impactOccurred('light');
+                });
+                
+                textSizePresets.appendChild(presetElement);
+            });
+            
+            // Выделяем пресет по умолчанию (стандартный)
+            const defaultPreset = document.querySelector('.text-size-preset[data-size="5"]');
+            if (defaultPreset) {
+                defaultPreset.classList.add('active');
+            }
         }
         
         function initMotionPresets() {
@@ -1688,7 +1839,7 @@
                     item.innerHTML = `
                         ${colorBox}
                         <div class="saved-watermark-text">${watermark.text} ${motionIcon}</div>
-                        <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}%</div>
+                        <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}% | ${watermark.textSize || 5}%</div>
                         <div class="saved-watermark-actions">
                             <button class="delete-watermark-btn" data-index="${index}">
                                 <i class="fas fa-trash"></i>
@@ -1701,7 +1852,7 @@
                     item.innerHTML = `
                         <img src="${watermark.imageData}" class="saved-watermark-preview" alt="Watermark">
                         <div class="saved-watermark-text">Изображение ${motionIcon}</div>
-                        <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}%</div>
+                        <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}% | ${watermark.imageSize || 20}%</div>
                         <div class="saved-watermark-actions">
                             <button class="delete-watermark-btn" data-index="${index}">
                                 <i class="fas fa-trash"></i>
@@ -1736,6 +1887,25 @@
             // Устанавливаем настройки
             opacitySlider.value = watermark.opacity;
             opacityValue.textContent = `${watermark.opacity}%`;
+            
+            // Устанавливаем размеры
+            if (watermark.type === 'text' && watermark.textSize) {
+                textSizeSlider.value = watermark.textSize;
+                textSizeValue.textContent = `${watermark.textSize}%`;
+                textSize = parseFloat(watermark.textSize);
+                
+                // Выделяем соответствующий пресет размера
+                document.querySelectorAll('.text-size-preset').forEach(p => {
+                    p.classList.remove('active');
+                    if (parseFloat(p.dataset.size) === parseFloat(watermark.textSize)) {
+                        p.classList.add('active');
+                    }
+                });
+            } else if (watermark.type === 'image' && watermark.imageSize) {
+                imageSizeSlider.value = watermark.imageSize;
+                imageSizeValue.textContent = `${watermark.imageSize}%`;
+                imageSize = parseFloat(watermark.imageSize);
+            }
             
             // Устанавливаем позицию
             positionButtons.forEach(btn => btn.classList.remove('active'));
@@ -1813,12 +1983,14 @@
                 watermarkData.text = text;
                 watermarkData.textColor = textColor;
                 watermarkData.strokeColor = strokeColor;
+                watermarkData.textSize = textSizeSlider.value;
             } else {
                 if (!watermarkImage) {
                     alert('Загрузите изображение водяного знака');
                     return;
                 }
                 watermarkData.imageData = watermarkImage.src;
+                watermarkData.imageSize = imageSizeSlider.value;
             }
             
             // Сохраняем настройки движения, если они включены
@@ -1862,18 +2034,7 @@
         function showNotification(message) {
             // Создаем временное уведомление
             const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #4CAF50;
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                z-index: 1001;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                animation: slideIn 0.3s ease;
-            `;
+            notification.className = 'notification';
             notification.textContent = message;
             document.body.appendChild(notification);
             
@@ -1883,23 +2044,6 @@
                     document.body.removeChild(notification);
                 }, 300);
             }, 2000);
-            
-            // Добавляем стили для анимации
-            if (!document.querySelector('#notification-styles')) {
-                const style = document.createElement('style');
-                style.id = 'notification-styles';
-                style.textContent = `
-                    @keyframes slideIn {
-                        from { transform: translateX(100%); opacity: 0; }
-                        to { transform: translateX(0); opacity: 1; }
-                    }
-                    @keyframes slideOut {
-                        from { transform: translateX(0); opacity: 1; }
-                        to { transform: translateX(100%); opacity: 0; }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
         }
         
         function goToStep(step) {
@@ -2201,7 +2345,10 @@
                 // Для текста создаем временный canvas для измерения
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
-                const fontSize = Math.min(videoWidth, videoHeight) * 0.05;
+                
+                // Используем выбранный размер текста
+                const minSide = Math.min(videoWidth, videoHeight);
+                const fontSize = minSide * (textSize / 100);
                 
                 tempCtx.font = `bold ${fontSize}px Arial`;
                 const text = watermarkText.value.trim();
@@ -2213,7 +2360,8 @@
                 // Сохраняем размер шрифта для использования в отрисовке
                 watermarkState.fontSize = fontSize;
             } else if (watermarkType === 'image' && watermarkImage) {
-                watermarkWidth = videoWidth * 0.2;
+                // Используем выбранный размер изображения
+                watermarkWidth = videoWidth * (imageSize / 100);
                 watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
             } else {
                 // Значения по умолчанию
@@ -2239,7 +2387,9 @@
             let x, y, watermarkWidth, watermarkHeight;
             
             if (watermarkType === 'text' && watermarkText.value.trim()) {
-                const fontSize = Math.min(width, height) * 0.05;
+                // Используем выбранный размер текста
+                const minSide = Math.min(width, height);
+                const fontSize = minSide * (textSize / 100);
                 ctx.font = `bold ${fontSize}px Arial`;
                 const text = watermarkText.value.trim();
                 const textMetrics = ctx.measureText(text);
@@ -2286,7 +2436,8 @@
                         break;
                 }
             } else if (watermarkType === 'image' && watermarkImage) {
-                watermarkWidth = width * 0.2;
+                // Используем выбранный размер изображения
+                watermarkWidth = width * (imageSize / 100);
                 watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
                 
                 switch(position) {
@@ -2334,7 +2485,8 @@
             
             if (watermarkType === 'text' && watermarkText.value.trim()) {
                 const text = watermarkText.value.trim();
-                const fontSize = Math.min(width, height) * 0.05;
+                const minSide = Math.min(width, height);
+                const fontSize = minSide * (textSize / 100);
                 ctx.font = `bold ${fontSize}px Arial`;
                 
                 // Рисуем текст с обводкой и заливкой
@@ -2395,7 +2547,8 @@
                 if (watermarkState.fontSize) {
                     ctx.font = `bold ${watermarkState.fontSize}px Arial`;
                 } else {
-                    const fontSize = Math.min(width, height) * 0.05;
+                    const minSide = Math.min(width, height);
+                    const fontSize = minSide * (textSize / 100);
                     ctx.font = `bold ${fontSize}px Arial`;
                 }
                 
@@ -2459,7 +2612,8 @@
                     const url = URL.createObjectURL(blob);
                     processedMedia = {
                         url: url,
-                        type: mimeType.split(';')[0]
+                        type: mimeType.split(';')[0],
+                        blob: blob
                     };
                     
                     processedVideoPreview.src = url;
@@ -2514,35 +2668,131 @@
         function downloadResult() {
             if (!processedMedia) return;
             
-            const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
             if (isVideo) {
-                link.href = processedMedia.url;
-                let extension = 'webm';
-                if (processedMedia.type === 'video/mp4') {
-                    extension = 'mp4';
+                // Для видео на мобильных устройствах используем специальный метод
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    // На мобильных устройствах используем FileSaver.js подход
+                    const blob = processedMedia.blob || fetch(processedMedia.url).then(r => r.blob());
+                    
+                    if (processedMedia.blob) {
+                        // Если у нас уже есть blob, используем его
+                        saveBlobToFile(processedMedia.blob, `TgPosted_${originalName}_${timestamp}.${processedMedia.type === 'video/mp4' ? 'mp4' : 'webm'}`);
+                    } else {
+                        // Иначе загружаем blob из URL
+                        fetch(processedMedia.url)
+                            .then(response => response.blob())
+                            .then(blob => {
+                                saveBlobToFile(blob, `TgPosted_${originalName}_${timestamp}.${processedMedia.type === 'video/mp4' ? 'mp4' : 'webm'}`);
+                            })
+                            .catch(error => {
+                                console.error('Ошибка при скачивании видео:', error);
+                                // Если не удалось скачать, открываем в новой вкладке
+                                window.open(processedMedia.url, '_blank');
+                                showNotification('Видео открыто в новой вкладке. Сохраните его вручную.');
+                            });
+                    }
+                } else {
+                    // На десктопах используем стандартный метод
+                    const link = document.createElement('a');
+                    link.href = processedMedia.url;
+                    let extension = 'webm';
+                    if (processedMedia.type === 'video/mp4') {
+                        extension = 'mp4';
+                    }
+                    link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
             } else {
-                link.href = processedMedia;
-                let extension = 'png';
-                if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
-                    extension = 'jpg';
-                } else if (originalFormat.includes('png')) {
-                    extension = 'png';
-                } else if (originalFormat.includes('gif')) {
-                    extension = 'gif';
+                // Для изображений
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    // На мобильных устройствах используем специальный метод
+                    const link = document.createElement('a');
+                    link.href = processedMedia;
+                    link.target = '_blank';
+                    
+                    let extension = 'png';
+                    if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
+                        extension = 'jpg';
+                    } else if (originalFormat.includes('png')) {
+                        extension = 'png';
+                    } else if (originalFormat.includes('gif')) {
+                        extension = 'gif';
+                    }
+                    
+                    // Пытаемся использовать download атрибут, если поддерживается
+                    try {
+                        link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    } catch (e) {
+                        // Если не поддерживается, просто открываем в новой вкладке
+                        console.log('Атрибут download не поддерживается');
+                    }
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Показываем инструкцию для пользователя
+                    setTimeout(() => {
+                        showNotification('Нажмите и удерживайте изображение, чтобы сохранить его');
+                    }, 500);
+                } else {
+                    // На десктопах используем стандартный метод
+                    const link = document.createElement('a');
+                    link.href = processedMedia;
+                    let extension = 'png';
+                    if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
+                        extension = 'jpg';
+                    } else if (originalFormat.includes('png')) {
+                        extension = 'png';
+                    } else if (originalFormat.includes('gif')) {
+                        extension = 'gif';
+                    }
+                    link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
             }
             
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
             tg.HapticFeedback.impactOccurred('medium');
+        }
+        
+        // Функция для сохранения Blob как файла на мобильных устройствах
+        function saveBlobToFile(blob, fileName) {
+            if (window.navigator.msSaveOrOpenBlob) {
+                // Для IE
+                window.navigator.msSaveOrOpenBlob(blob, fileName);
+            } else {
+                // Для других браузеров
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                // Пытаемся использовать download атрибут
+                try {
+                    link.download = fileName;
+                } catch (e) {
+                    console.log('Атрибут download не поддерживается, открываем в новой вкладке');
+                    link.target = '_blank';
+                }
+                
+                document.body.appendChild(link);
+                link.click();
+                
+                // Очищаем URL через некоторое время
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+                
+                // Показываем инструкцию для пользователя
+                showNotification('Файл начал скачиваться. Если не скачался, нажмите "Скачать" в открывшейся вкладке');
+            }
         }
         
         function resetAll() {
@@ -2604,6 +2854,25 @@
             updateColorValues();
             highlightPresetByColor(textColor, textColorPresets);
             highlightPresetByColor(strokeColor, strokeColorPresets);
+            
+            // Сброс размера текста
+            textSizeSlider.value = 5;
+            textSizeValue.textContent = '5%';
+            textSize = 5;
+            
+            // Сброс размера изображения
+            imageSizeSlider.value = 20;
+            imageSizeValue.textContent = '20%';
+            imageSize = 20;
+            
+            // Сброс пресетов размера текста
+            document.querySelectorAll('.text-size-preset').forEach(p => {
+                p.classList.remove('active');
+            });
+            const defaultTextSizePreset = document.querySelector('.text-size-preset[data-size="5"]');
+            if (defaultTextSizePreset) {
+                defaultTextSizePreset.classList.add('active');
+            }
             
             setWatermarkType('text');
             
