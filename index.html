@@ -2145,10 +2145,9 @@
                     canvas.width = tempVideo.videoWidth;
                     canvas.height = tempVideo.videoHeight;
                     
-                    // Инициализируем состояние водяного знака для движения
-                    if (movingWatermark.checked) {
-                        initializeWatermarkState(canvas.width, canvas.height);
-                    }
+                    // ВАЖНО: Инициализируем состояние водяного знака для движения всегда,
+                    // даже если движение не включено, чтобы иметь начальные координаты
+                    initializeWatermarkState(canvas.width, canvas.height);
                     
                     let fps = 30;
                     const totalFrames = Math.floor(videoDuration * fps);
@@ -2163,13 +2162,13 @@
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
                             ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
                             
-                            // Применяем водяной знак
-                            applyWatermarkToCanvas(ctx, canvas.width, canvas.height, currentFrame, totalFrames);
-                            
-                            // Если включено движение, обновляем позицию водяного знака
+                            // Если включено движение, обновляем позицию водяного знака перед отрисовкой
                             if (movingWatermark.checked) {
                                 updateWatermarkPosition(canvas.width, canvas.height, currentFrame, totalFrames);
                             }
+                            
+                            // Применяем водяной знак с текущими координатами
+                            applyWatermarkToCanvas(ctx, canvas.width, canvas.height, currentFrame, totalFrames);
                             
                             videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
                             currentFrame++;
@@ -2207,6 +2206,9 @@
                 
                 watermarkWidth = textMetrics.width + fontSize;
                 watermarkHeight = fontSize * 2;
+                
+                // Сохраняем размер шрифта для использования в отрисовке
+                watermarkState.fontSize = fontSize;
             } else if (watermarkType === 'image' && watermarkImage) {
                 watermarkWidth = videoWidth * 0.2;
                 watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
@@ -2219,6 +2221,8 @@
             // Устанавливаем начальное состояние водяного знака
             watermarkState.width = watermarkWidth;
             watermarkState.height = watermarkHeight;
+            watermarkState.videoWidth = videoWidth;
+            watermarkState.videoHeight = videoHeight;
             
             // Устанавливаем начальную позицию в зависимости от выбранного положения
             switch(position) {
@@ -2399,30 +2403,24 @@
             }
         }
         
-        function applyWatermarkToCanvas(ctx, width, height, frameIndex = 0, totalFrames = 1) {
+         function applyWatermarkToCanvas(ctx, width, height, frameIndex = 0, totalFrames = 1) {
             const opacity = parseInt(opacitySlider.value) / 100;
             
-            // Если включена подвижная водяная марка для видео, используем текущие координаты
+            // ВАЖНО: Определяем, используем ли мы движение для этого кадра
+            const useMotion = isVideo && movingWatermark.checked && totalFrames > 1;
+            
             let x, y, watermarkWidth, watermarkHeight;
             
-            if (isVideo && movingWatermark.checked && totalFrames > 1) {
+            if (useMotion) {
+                // Для движения используем координаты из watermarkState
                 x = watermarkState.x;
                 y = watermarkState.y;
                 
-                if (watermarkType === 'text' && watermarkText.value.trim()) {
-                    const fontSize = Math.min(width, height) * 0.05;
-                    ctx.font = `bold ${fontSize}px Arial`;
-                    const text = watermarkText.value.trim();
-                    const textMetrics = ctx.measureText(text);
-                    
-                    watermarkWidth = textMetrics.width + fontSize;
-                    watermarkHeight = fontSize * 2;
-                } else if (watermarkType === 'image' && watermarkImage) {
-                    watermarkWidth = width * 0.2;
-                    watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
-                }
+                // Используем сохраненные размеры
+                watermarkWidth = watermarkState.width;
+                watermarkHeight = watermarkState.height;
             } else {
-                // Иначе используем выбранную позицию
+                // Для статичного водяного знака вычисляем позицию
                 if (watermarkType === 'text' && watermarkText.value.trim()) {
                     const fontSize = Math.min(width, height) * 0.05;
                     ctx.font = `bold ${fontSize}px Arial`;
@@ -2519,10 +2517,16 @@
             ctx.globalAlpha = opacity;
             
             if (watermarkType === 'text' && watermarkText.value.trim()) {
-                // Текстовая водяная марка с выбранными цветами
-                const fontSize = Math.min(width, height) * 0.05;
-                ctx.font = `bold ${fontSize}px Arial`;
                 const text = watermarkText.value.trim();
+                
+                if (useMotion && watermarkState.fontSize) {
+                    // Для движения используем сохраненный размер шрифта
+                    ctx.font = `bold ${watermarkState.fontSize}px Arial`;
+                } else {
+                    // Для статичного водяного знака вычисляем размер шрифта
+                    const fontSize = Math.min(width, height) * 0.05;
+                    ctx.font = `bold ${fontSize}px Arial`;
+                }
                 
                 // Рисуем текст с обводкой и заливкой
                 ctx.strokeStyle = strokeColor;
@@ -2531,8 +2535,12 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                ctx.strokeText(text, x + watermarkWidth/2, y + watermarkHeight/2);
-                ctx.fillText(text, x + watermarkWidth/2, y + watermarkHeight/2);
+                // Вычисляем центр для текста
+                const centerX = x + (watermarkWidth / 2);
+                const centerY = y + (watermarkHeight / 2);
+                
+                ctx.strokeText(text, centerX, centerY);
+                ctx.fillText(text, centerX, centerY);
                 
             } else if (watermarkType === 'image' && watermarkImage) {
                 // Водяная марка из изображения
