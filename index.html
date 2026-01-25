@@ -902,6 +902,89 @@
             background: rgba(76, 175, 80, 1);
         }
 
+        /* Стили для скачивания */
+        .download-instruction {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 90%;
+        }
+
+        .download-instruction h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .download-instruction p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .download-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .download-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .download-step i {
+            color: #4CAF50;
+            font-size: 18px;
+        }
+
+        .temporary-link {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .temporary-link p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .copy-link-btn {
+            background: rgba(0, 114, 255, 0.8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .copy-link-btn:hover {
+            background: rgba(0, 114, 255, 1);
+        }
+
+        .download-timer {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -965,6 +1048,10 @@
             .fullscreen-btn {
                 width: 100%;
                 max-width: 300px;
+            }
+            
+            .download-instruction {
+                padding: 15px;
             }
         }
     </style>
@@ -1241,7 +1328,7 @@
             <!-- Кнопка для открытия в полноэкранном режиме -->
             <div class="download-container">
                 <button class="btn btn-success" id="openFullscreenBtn" disabled>
-                    <i class="fas fa-expand"></i> Открыть во весь экран
+                    <i class="fas fa-expand"></i> Открыть во весь экран и сохранить
                 </button>
             </div>
 
@@ -1268,10 +1355,38 @@
         </button>
         <img id="fullscreenImage" class="fullscreen-media hidden">
         <video id="fullscreenVideo" class="fullscreen-media hidden" controls></video>
-        <div class="fullscreen-controls">
-            <button class="fullscreen-btn fullscreen-btn-save" id="fullscreenSaveBtn">
-                <i class="fas fa-download"></i> Сохранить на устройство
-            </button>
+        
+        <div class="download-instruction" id="downloadInstruction">
+            <h3>Как сохранить файл на устройство?</h3>
+            
+            <div class="download-steps">
+                <div class="download-step">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Нажмите и удерживайте на изображении/видео</span>
+                </div>
+                <div class="download-step">
+                    <i class="fas fa-download"></i>
+                    <span>Выберите "Сохранить изображение" или "Сохранить видео"</span>
+                </div>
+                <div class="download-step">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Файл сохранится в вашу галерею</span>
+                </div>
+            </div>
+            
+            <div class="temporary-link" id="temporaryLinkContainer" style="display: none;">
+                <p>Или используйте временную ссылку для скачивания:</p>
+                <button class="copy-link-btn" id="copyLinkBtn">
+                    <i class="fas fa-copy"></i> Копировать ссылку
+                </button>
+                <div class="download-timer" id="downloadTimer">
+                    Ссылка действительна 5 минут
+                </div>
+            </div>
+            
+            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 10px;">
+                <i class="fas fa-info-circle"></i> Из-за ограничений Telegram, прямое скачивание недоступно
+            </p>
         </div>
     </div>
 
@@ -1356,7 +1471,10 @@
         const fullscreenImage = document.getElementById('fullscreenImage');
         const fullscreenVideo = document.getElementById('fullscreenVideo');
         const fullscreenClose = document.getElementById('fullscreenClose');
-        const fullscreenSaveBtn = document.getElementById('fullscreenSaveBtn');
+        const downloadInstruction = document.getElementById('downloadInstruction');
+        const temporaryLinkContainer = document.getElementById('temporaryLinkContainer');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const downloadTimer = document.getElementById('downloadTimer');
         
         // Элементы для сохраненных водяных знаков
         const savedWatermarksList = document.getElementById('savedWatermarksList');
@@ -1371,6 +1489,7 @@
         let originalMedia = null;
         let processedMedia = null;
         let processedMediaUrl = null;
+        let processedBlob = null;
         let watermarkType = 'text';
         let watermarkImage = null;
         let position = 'bottom-right';
@@ -1380,6 +1499,8 @@
         let originalFormat = '';
         let originalFileName = '';
         let savedWatermarks = [];
+        let temporaryLink = null;
+        let linkExpirationTimer = null;
         
         // Цвета по умолчанию
         let textColor = '#FFFFFF';
@@ -1506,7 +1627,7 @@
             // Полноэкранный режим
             openFullscreenBtn.addEventListener('click', openFullscreen);
             fullscreenClose.addEventListener('click', closeFullscreen);
-            fullscreenSaveBtn.addEventListener('click', downloadResult);
+            copyLinkBtn.addEventListener('click', copyTemporaryLink);
             
             // Клик на обработанном медиа для открытия в полноэкранном режиме
             processedImageContainer.addEventListener('click', openFullscreen);
@@ -1524,6 +1645,17 @@
                 if (e.key === 'Escape' && fullscreenOverlay.classList.contains('active')) {
                     closeFullscreen();
                 }
+            });
+            
+            // Обработка долгого нажатия на медиа в полноэкранном режиме
+            fullscreenImage.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showNotification('Используйте "Нажать и удерживать" для сохранения файла');
+            });
+            
+            fullscreenVideo.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showNotification('Используйте "Нажать и удерживать" для сохранения файла');
             });
         }
         
@@ -2270,31 +2402,29 @@
                         mimeType = 'image/png';
                     }
                     
-                    try {
-                        processedMedia = canvas.toDataURL(mimeType);
-                        processedMediaUrl = canvas.toDataURL(mimeType);
-                    } catch (e) {
-                        processedMedia = canvas.toDataURL('image/png');
-                        processedMediaUrl = canvas.toDataURL('image/png');
-                    }
-                    
-                    // Показываем результат
-                    processedMediaPreview.src = processedMedia;
-                    processedImageContainer.classList.remove('hidden');
-                    processedVideoContainer.classList.add('hidden');
-                    noProcessedPreview.classList.add('hidden');
-                    
-                    // Настраиваем размер изображения
-                    const aspectRatio = img.width / img.height;
-                    if (aspectRatio > 1.5) {
-                        processedImageContainer.style.width = '100%';
-                        processedImageContainer.style.maxWidth = '500px';
-                    } else {
-                        processedImageContainer.style.width = 'auto';
-                        processedImageContainer.style.maxWidth = '300px';
-                    }
-                    
-                    resolve();
+                    canvas.toBlob((blob) => {
+                        processedBlob = blob;
+                        processedMediaUrl = URL.createObjectURL(blob);
+                        processedMedia = processedMediaUrl;
+                        
+                        // Показываем результат
+                        processedMediaPreview.src = processedMedia;
+                        processedImageContainer.classList.remove('hidden');
+                        processedVideoContainer.classList.add('hidden');
+                        noProcessedPreview.classList.add('hidden');
+                        
+                        // Настраиваем размер изображения
+                        const aspectRatio = img.width / img.height;
+                        if (aspectRatio > 1.5) {
+                            processedImageContainer.style.width = '100%';
+                            processedImageContainer.style.maxWidth = '500px';
+                        } else {
+                            processedImageContainer.style.width = 'auto';
+                            processedImageContainer.style.maxWidth = '300px';
+                        }
+                        
+                        resolve();
+                    }, mimeType);
                 };
                 
                 img.src = originalMedia.url;
@@ -2624,6 +2754,8 @@
                     const blob = new Blob(chunks, { 
                         type: mimeType.split(';')[0]
                     });
+                    
+                    processedBlob = blob;
                     processedMediaUrl = URL.createObjectURL(blob);
                     processedMedia = {
                         url: processedMediaUrl,
@@ -2685,6 +2817,9 @@
             // Останавливаем предпросмотр движения, если оно было
             stopMotionPreview();
             
+            // Создаем временную ссылку для скачивания
+            createTemporaryLink();
+            
             if (isVideo) {
                 fullscreenVideo.src = processedVideoPreview.src;
                 fullscreenVideo.classList.remove('hidden');
@@ -2698,6 +2833,9 @@
             fullscreenOverlay.classList.add('active');
             document.body.style.overflow = 'hidden';
             
+            // Показываем инструкцию по скачиванию
+            downloadInstruction.style.display = 'block';
+            
             tg.HapticFeedback.impactOccurred('medium');
         }
         
@@ -2710,41 +2848,119 @@
                 fullscreenVideo.pause();
             }
             
+            // Очищаем временную ссылку
+            clearTemporaryLink();
+            
             tg.HapticFeedback.impactOccurred('light');
         }
         
-        function downloadResult() {
-            if (!processedMediaUrl) return;
-            
-            const link = document.createElement('a');
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-            
-            if (isVideo) {
-                link.href = processedMediaUrl;
-                let extension = 'webm';
-                if (processedMedia.type === 'video/mp4') {
+        function createTemporaryLink() {
+            // Создаем временную ссылку для скачивания
+            if (processedBlob) {
+                // Для мобильных устройств создаем специальную ссылку
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+                
+                let extension = isVideo ? 'webm' : 'png';
+                if (isVideo && processedMedia.type === 'video/mp4') {
                     extension = 'mp4';
-                }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
-            } else {
-                link.href = processedMediaUrl;
-                let extension = 'png';
-                if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
+                } else if (!isVideo && originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
                     extension = 'jpg';
-                } else if (originalFormat.includes('png')) {
+                } else if (!isVideo && originalFormat.includes('png')) {
                     extension = 'png';
-                } else if (originalFormat.includes('gif')) {
-                    extension = 'gif';
                 }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                
+                const fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                
+                // Создаем объект URL из blob
+                temporaryLink = URL.createObjectURL(processedBlob);
+                
+                // Показываем контейнер с ссылкой
+                temporaryLinkContainer.style.display = 'block';
+                
+                // Устанавливаем таймер на удаление ссылки через 5 минут
+                if (linkExpirationTimer) {
+                    clearTimeout(linkExpirationTimer);
+                }
+                
+                linkExpirationTimer = setTimeout(() => {
+                    clearTemporaryLink();
+                    showNotification('Время действия ссылки истекло');
+                }, 5 * 60 * 1000); // 5 минут
+                
+                // Обновляем текст таймера
+                let timeLeft = 5 * 60; // 5 минут в секундах
+                const timerInterval = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        downloadTimer.textContent = 'Ссылка истекла';
+                    } else {
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        downloadTimer.textContent = `Ссылка действительна ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                }, 1000);
+                
+                // Сохраняем интервал для очистки
+                window.timerInterval = timerInterval;
+            }
+        }
+        
+        function clearTemporaryLink() {
+            // Освобождаем объект URL
+            if (temporaryLink) {
+                URL.revokeObjectURL(temporaryLink);
+                temporaryLink = null;
             }
             
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Очищаем таймеры
+            if (linkExpirationTimer) {
+                clearTimeout(linkExpirationTimer);
+                linkExpirationTimer = null;
+            }
             
-            tg.HapticFeedback.impactOccurred('medium');
+            if (window.timerInterval) {
+                clearInterval(window.timerInterval);
+                window.timerInterval = null;
+            }
+            
+            // Скрываем контейнер с ссылкой
+            temporaryLinkContainer.style.display = 'none';
+        }
+        
+        function copyTemporaryLink() {
+            if (!temporaryLink) return;
+            
+            // Пытаемся использовать Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(temporaryLink)
+                    .then(() => {
+                        showNotification('Ссылка скопирована в буфер обмена');
+                    })
+                    .catch(err => {
+                        console.error('Ошибка копирования: ', err);
+                        showNotification('Не удалось скопировать ссылку');
+                    });
+            } else {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = temporaryLink;
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showNotification('Ссылка скопирована в буфер обмена');
+                } catch (err) {
+                    console.error('Ошибка копирования: ', err);
+                    showNotification('Не удалось скопировать ссылку');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+            
+            tg.HapticFeedback.impactOccurred('light');
         }
         
         function resetAll() {
@@ -2756,8 +2972,12 @@
             originalMedia = null;
             processedMedia = null;
             processedMediaUrl = null;
+            processedBlob = null;
             watermarkImage = null;
             videoFrames = [];
+            
+            // Очищаем временную ссылку
+            clearTemporaryLink();
             
             // Сброс UI
             mediaPreview.classList.add('hidden');
