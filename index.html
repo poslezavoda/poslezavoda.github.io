@@ -505,7 +505,7 @@
             width: 60px;
             height: 60px;
             border: 5px solid rgba(0, 114, 255, 0.1);
-            border-top-color: #0072ff;
+            border-top-color = #0072ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -767,7 +767,7 @@
 
         .motion-preset.active {
             background: rgba(0, 114, 255, 0.1);
-            border-color: #0072ff;
+            border-color = #0072ff;
             color: #0072ff;
         }
 
@@ -873,8 +873,8 @@
             margin-right: auto;
         }
 
-        /* Новый стиль для отображения пути сохранения */
-        .save-path-info {
+        /* Информация о сохранении */
+        .save-info {
             background: #e8f5e8;
             border: 1px solid #4CAF50;
             border-radius: 8px;
@@ -883,12 +883,12 @@
             display: none;
         }
 
-        .save-path-info.active {
+        .save-info.active {
             display: block;
             animation: fadeIn 0.5s ease;
         }
 
-        .save-path-title {
+        .save-info-title {
             font-size: 16px;
             color: #2E7D32;
             font-weight: 600;
@@ -898,7 +898,7 @@
             gap: 8px;
         }
 
-        .save-path-text {
+        .save-info-text {
             font-size: 14px;
             color: #333;
             background: white;
@@ -906,11 +906,10 @@
             border-radius: 6px;
             border: 1px solid #ddd;
             word-break: break-all;
-            font-family: monospace;
             margin-bottom: 10px;
         }
 
-        .save-path-copy-btn {
+        .save-info-copy-btn {
             background: #0072ff;
             color: white;
             border: none;
@@ -924,8 +923,64 @@
             transition: all 0.3s;
         }
 
-        .save-path-copy-btn:hover {
+        .save-info-copy-btn:hover {
             background: #0056cc;
+        }
+
+        /* Инструкция по сохранению */
+        .save-instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .save-instructions.active {
+            display: block;
+        }
+
+        .save-instructions-title {
+            font-size: 16px;
+            color: #856404;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .save-instructions-content {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .save-instructions-steps {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .save-instructions-step {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .save-instructions-step-number {
+            background: #856404;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
         }
 
         @media (max-width: 600px) {
@@ -1282,30 +1337,48 @@
             <!-- Центрированная кнопка загрузки -->
             <div class="download-container">
                 <button class="btn btn-success" id="downloadResultBtn" disabled>
-                    <i class="fas fa-download"></i> Скачать результат
+                    <i class="fas fa-download"></i> Сохранить результат
                 </button>
             </div>
 
-            <!-- Опции сохранения для мобильных устройств -->
-            <div class="save-options hidden" id="saveOptions">
-                <button class="btn btn-primary" id="saveToGalleryBtn">
-                    <i class="fas fa-save"></i> Сохранить в галерею
-                </button>
-                <button class="btn btn-secondary" id="shareFileBtn">
-                    <i class="fas fa-share"></i> Поделиться файлом
-                </button>
+            <!-- Инструкция по сохранению -->
+            <div class="save-instructions" id="saveInstructions">
+                <div class="save-instructions-title">
+                    <i class="fas fa-info-circle"></i> Как сохранить файл на телефоне:
+                </div>
+                <div class="save-instructions-content">
+                    После нажатия кнопки "Сохранить результат":
+                    <div class="save-instructions-steps">
+                        <div class="save-instructions-step">
+                            <div class="save-instructions-step-number">1</div>
+                            <div>Нажмите на файл, который откроется в новой вкладке</div>
+                        </div>
+                        <div class="save-instructions-step">
+                            <div class="save-instructions-step-number">2</div>
+                            <div>Нажмите на три точки или значок "Поделиться"</div>
+                        </div>
+                        <div class="save-instructions-step">
+                            <div class="save-instructions-step-number">3</div>
+                            <div>Выберите "Сохранить" или "Скачать"</div>
+                        </div>
+                        <div class="save-instructions-step">
+                            <div class="save-instructions-step-number">4</div>
+                            <div>Выберите папку для сохранения (рекомендуется "Загрузки" или "Фото")</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Информация о сохраненном пути -->
-            <div class="save-path-info" id="savePathInfo">
-                <div class="save-path-title">
-                    <i class="fas fa-check-circle"></i> Файл успешно сохранен!
+            <!-- Информация о сохранении -->
+            <div class="save-info" id="saveInfo">
+                <div class="save-info-title">
+                    <i class="fas fa-check-circle"></i> Файл готов к сохранению!
                 </div>
-                <div class="save-path-text" id="savePathText">
-                    Путь будет показан здесь после сохранения
+                <div class="save-info-text" id="saveInfoText">
+                    Файл откроется в новой вкладке. Сохраните его на устройство.
                 </div>
-                <button class="save-path-copy-btn" id="copyPathBtn">
-                    <i class="fas fa-copy"></i> Копировать путь
+                <button class="save-info-copy-btn" id="copyFileLinkBtn">
+                    <i class="fas fa-link"></i> Копировать ссылку на файл
                 </button>
             </div>
 
@@ -1410,15 +1483,11 @@
         const noProcessedPreview = document.getElementById('noProcessedPreview');
         const downloadResultBtn = document.getElementById('downloadResultBtn');
         
-        // Элементы для сохранения файлов
-        const saveOptions = document.getElementById('saveOptions');
-        const saveToGalleryBtn = document.getElementById('saveToGalleryBtn');
-        const shareFileBtn = document.getElementById('shareFileBtn');
-        
-        // Элементы для сохраненного пути
-        const savePathInfo = document.getElementById('savePathInfo');
-        const savePathText = document.getElementById('savePathText');
-        const copyPathBtn = document.getElementById('copyPathBtn');
+        // Элементы для сохранения
+        const saveInstructions = document.getElementById('saveInstructions');
+        const saveInfo = document.getElementById('saveInfo');
+        const saveInfoText = document.getElementById('saveInfoText');
+        const copyFileLinkBtn = document.getElementById('copyFileLinkBtn');
         
         // Элементы для сохраненных водяных знаков
         const savedWatermarksList = document.getElementById('savedWatermarksList');
@@ -1516,8 +1585,10 @@
             // Инициализируем предпросмотр движения
             initMotionPreview();
             
-            // Проверяем, мобильное ли устройство
-            checkMobileDevice();
+            // Показываем инструкции на мобильных устройствах
+            if (isMobileDevice()) {
+                saveInstructions.classList.add('active');
+            }
             
             // Навигация по шагам
             nextToStep2Btn.addEventListener('click', () => goToStep(2));
@@ -1578,21 +1649,13 @@
             // Сохранение водяного знака
             saveCurrentWatermarkBtn.addEventListener('click', saveCurrentWatermark);
             
-            // Скачивание и сохранение результата
-            downloadResultBtn.addEventListener('click', handleDownload);
-            saveToGalleryBtn.addEventListener('click', saveToGallery);
-            shareFileBtn.addEventListener('click', shareFile);
-            copyPathBtn.addEventListener('click', copyPathToClipboard);
+            // Скачивание результата
+            downloadResultBtn.addEventListener('click', downloadResult);
+            copyFileLinkBtn.addEventListener('click', copyFileLink);
         }
         
-        function checkMobileDevice() {
-            // Проверяем, является ли устройство мобильным
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            // Показываем опции сохранения для мобильных устройств
-            if (isMobile) {
-                saveOptions.classList.remove('hidden');
-            }
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
         
         function initColorPickers() {
@@ -2817,80 +2880,42 @@
             });
         }
         
-        function handleDownload() {
+        async function downloadResult() {
             if (!processedMedia) return;
             
-            // Для мобильных устройств используем API для сохранения
-            if (isMobileDevice()) {
-                showMobileSaveOptions();
-            } else {
-                // Для десктопов используем стандартное скачивание
-                downloadFile();
-            }
-        }
-        
-        function isMobileDevice() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-        
-        function showMobileSaveOptions() {
-            // Показываем опции сохранения
-            saveOptions.classList.remove('hidden');
-        }
-        
-        function downloadFile() {
-            if (!processedMedia) return;
-            
-            const link = document.createElement('a');
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-            
-            if (isVideo) {
-                link.href = processedMedia.url;
-                let extension = 'webm';
-                if (processedMedia.type === 'video/mp4') {
-                    extension = 'mp4';
-                }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
-            } else {
-                link.href = processedMedia;
-                let extension = 'png';
-                if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
-                    extension = 'jpg';
-                } else if (originalFormat.includes('png')) {
-                    extension = 'png';
-                } else if (originalFormat.includes('gif')) {
-                    extension = 'gif';
-                }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
-            }
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Показываем информацию о сохранении
-            showSavePathInfo(`Файл сохранен как: ${link.download} (в папке загрузок)`);
-            
-            tg.HapticFeedback.impactOccurred('medium');
-        }
-        
-        async function saveToGallery() {
-            if (!processedMedia) return;
+            downloadResultBtn.disabled = true;
             
             try {
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
                 
-                // Определяем тип файла и расширение
-                let extension, mimeType, fileName;
+                let fileName, fileUrl, mimeType;
                 
                 if (isVideo) {
-                    extension = processedMedia.type === 'video/mp4' ? 'mp4' : 'webm';
-                    mimeType = processedMedia.type;
+                    // Для видео используем blob URL
+                    let extension = processedMedia.type === 'video/mp4' ? 'mp4' : 'webm';
                     fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    mimeType = processedMedia.type;
+                    fileUrl = processedMedia.url;
+                    
+                    // Создаем временную ссылку для скачивания видео
+                    const link = document.createElement('a');
+                    link.href = fileUrl;
+                    link.download = fileName;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    
+                    // Пробуем скачать обычным способом
+                    link.click();
+                    
+                    // Через секунду удаляем ссылку
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                    }, 1000);
+                    
                 } else {
-                    // Определяем расширение для изображения
+                    // Для изображений используем data URL
+                    let extension = 'png';
                     if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
                         extension = 'jpg';
                         mimeType = 'image/jpeg';
@@ -2905,250 +2930,98 @@
                         mimeType = 'image/png';
                     }
                     fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
-                }
-                
-                // Создаем Blob из обработанного медиа
-                let blob;
-                if (isVideo) {
-                    blob = processedMedia.blob;
-                } else {
-                    // Для изображения извлекаем данные из DataURL
-                    const response = await fetch(processedMedia);
-                    blob = await response.blob();
-                }
-                
-                // Пробуем сохранить через File System Access API
-                if ('showSaveFilePicker' in window) {
-                    try {
-                        const fileHandle = await window.showSaveFilePicker({
-                            suggestedName: fileName,
-                            types: [{
-                                description: isVideo ? 'Video File' : 'Image File',
-                                accept: {
-                                    [mimeType]: [`.${extension}`]
-                                }
-                            }],
-                        });
-                        
-                        const writable = await fileHandle.createWritable();
-                        await writable.write(blob);
-                        await writable.close();
-                        
-                        // Показываем информацию о сохранении
-                        showSavePathInfo(`Файл сохранен: ${fileName}\nПуть: ${fileHandle.name || 'В выбранную папку'}`);
-                        
-                        tg.HapticFeedback.impactOccurred('medium');
-                        return;
-                    } catch (err) {
-                        if (err.name !== 'AbortError') {
-                            console.log('File System Access API не сработал, пробуем другой метод:', err);
-                        }
-                    }
-                }
-                
-                // Пробуем через Share API (работает на многих мобильных устройствах)
-                if (navigator.share && navigator.canShare) {
-                    try {
-                        const file = new File([blob], fileName, { type: mimeType });
-                        
-                        if (navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                files: [file],
-                                title: 'Обработанный файл с водяным знаком',
-                                text: 'Сохраните этот файл в галерею'
-                            });
-                            
-                            // Показываем информацию о сохранении
-                            showSavePathInfo(`Файл отправлен для сохранения: ${fileName}\nСохраните его в галерею через диалог шаринга`);
-                            
-                            tg.HapticFeedback.impactOccurred('medium');
-                            return;
-                        }
-                    } catch (err) {
-                        console.log('Share API не сработал:', err);
-                    }
-                }
-                
-                // Для Android Chrome - используем скачивание
-                if (navigator.userAgent.toLowerCase().includes('android')) {
+                    fileUrl = processedMedia;
+                    
+                    // Создаем временную ссылку для скачивания изображения
                     const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
+                    link.href = fileUrl;
                     link.download = fileName;
                     link.style.display = 'none';
                     document.body.appendChild(link);
+                    
+                    // Пробуем скачать обычным способом
                     link.click();
-                    document.body.removeChild(link);
                     
-                    // Показываем информацию о сохранении
-                    showSavePathInfo(`Файл сохранен как: ${fileName}\nНайдите его в папке "Загрузки" и переместите в галерею`);
-                    
-                    tg.HapticFeedback.impactOccurred('medium');
-                    return;
+                    // Через секунду удаляем ссылку
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                    }, 1000);
                 }
                 
-                // Для iOS - пробуем скачать через новую вкладку
-                if (navigator.userAgent.toLowerCase().includes('iphone') || 
-                    navigator.userAgent.toLowerCase().includes('ipad')) {
-                    
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = fileName;
-                    link.target = '_blank';
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // Показываем инструкцию для iOS
-                    showSavePathInfo(`Файл сохранен как: ${fileName}\nДля iOS: Нажмите "Поделиться" → "Сохранить в Фото"`);
-                    
-                    tg.HapticFeedback.impactOccurred('medium');
-                    return;
+                // Показываем информацию о сохранении
+                saveInfoText.textContent = `Файл: ${fileName}\n\nФайл готов к сохранению. Он откроется в новой вкладке или начнется скачивание.`;
+                saveInfo.classList.add('active');
+                
+                // Для мобильных устройств также открываем в новой вкладке
+                if (isMobileDevice()) {
+                    setTimeout(() => {
+                        window.open(fileUrl, '_blank');
+                    }, 500);
                 }
                 
-                // Фолбэк - обычное скачивание
-                downloadFile();
+                // Копируем ссылку в буфер обмена для удобства
+                await copyTextToClipboard(fileUrl);
+                showNotification('Ссылка на файл скопирована в буфер обмена!');
+                
+                tg.HapticFeedback.impactOccurred('medium');
                 
             } catch (error) {
-                console.error('Ошибка сохранения в галерею:', error);
-                showNotification('Не удалось сохранить в галерею. Используйте "Скачать результат".');
-                
-                // Пробуем скачать обычным способом
-                downloadFile();
+                console.error('Ошибка при сохранении файла:', error);
+                showNotification('Ошибка при сохранении файла. Попробуйте еще раз.');
+            } finally {
+                downloadResultBtn.disabled = false;
             }
         }
         
-        function showSavePathInfo(message) {
-            savePathText.textContent = message;
-            savePathInfo.classList.add('active');
-            
-            // Автоматически скрываем через 10 секунд
-            setTimeout(() => {
-                savePathInfo.classList.remove('active');
-            }, 10000);
-        }
-        
-        function copyPathToClipboard() {
-            const text = savePathText.textContent;
-            
-            // Пробуем использовать современный Clipboard API
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text)
-                    .then(() => {
-                        showNotification('Путь скопирован в буфер обмена!');
-                    })
-                    .catch(err => {
-                        console.error('Ошибка копирования в буфер:', err);
-                        fallbackCopyText(text);
-                    });
-            } else {
-                fallbackCopyText(text);
-            }
-        }
-        
-        function fallbackCopyText(text) {
-            // Старый способ для браузеров без поддержки Clipboard API
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showNotification('Путь скопирован в буфер обмена!');
-                } else {
-                    showNotification('Не удалось скопировать путь');
-                }
-            } catch (err) {
-                console.error('Ошибка копирования:', err);
-                showNotification('Не удалось скопировать путь');
-            }
-            
-            document.body.removeChild(textArea);
-        }
-        
-        function shareFile() {
+        async function copyFileLink() {
             if (!processedMedia) return;
             
-            // Используем Web Share API если доступен
-            if (navigator.share) {
-                shareWithWebAPI();
-            } else {
-                // Fallback: копируем ссылку
-                copyToClipboard();
-            }
-        }
-        
-        async function shareWithWebAPI() {
             try {
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-                
-                // Создаем Blob для шаринга
-                let blob, fileName, mimeType;
-                
+                let fileUrl;
                 if (isVideo) {
-                    blob = processedMedia.blob;
-                    mimeType = processedMedia.type;
-                    let extension = processedMedia.type === 'video/mp4' ? 'mp4' : 'webm';
-                    fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    fileUrl = processedMedia.url;
                 } else {
-                    const response = await fetch(processedMedia);
-                    blob = await response.blob();
-                    mimeType = blob.type;
-                    
-                    let extension = 'png';
-                    if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
-                        extension = 'jpg';
-                    } else if (originalFormat.includes('png')) {
-                        extension = 'png';
-                    } else if (originalFormat.includes('gif')) {
-                        extension = 'gif';
-                    }
-                    fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    fileUrl = processedMedia;
                 }
                 
-                // Создаем файл для шаринга
-                const file = new File([blob], fileName, { type: mimeType });
-                
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'Обработанный файл с водяным знаком',
-                        text: 'Посмотрите мой обработанный файл с водяным знаком!'
-                    });
-                    
-                    tg.HapticFeedback.impactOccurred('medium');
-                } else {
-                    // Если нельзя шарить файлы, шарим текст
-                    await navigator.share({
-                        title: 'Обработанный файл с водяным знаком',
-                        text: 'Я обработал файл с водяным знаком!'
-                    });
-                }
-                
-            } catch (err) {
-                console.error('Ошибка шаринга:', err);
-                copyToClipboard();
+                await copyTextToClipboard(fileUrl);
+                showNotification('Ссылка на файл скопирована в буфер обмена!');
+                tg.HapticFeedback.impactOccurred('light');
+            } catch (error) {
+                console.error('Ошибка копирования ссылки:', error);
+                showNotification('Не удалось скопировать ссылку');
             }
         }
         
-        function copyToClipboard() {
-            // Создаем временную ссылку для копирования
-            const tempInput = document.createElement('input');
-            tempInput.value = processedMedia.url || processedMedia;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            
-            showNotification('Ссылка скопирована в буфер обмена!');
-            tg.HapticFeedback.impactOccurred('light');
+        async function copyTextToClipboard(text) {
+            try {
+                // Пробуем использовать современный Clipboard API
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } else {
+                    // Старый способ
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    if (!successful) {
+                        throw new Error('Не удалось скопировать текст');
+                    }
+                    return true;
+                }
+            } catch (error) {
+                console.error('Ошибка копирования в буфер обмена:', error);
+                throw error;
+            }
         }
         
         function resetAll() {
@@ -3182,11 +3055,10 @@
             videoProcessingContainer.classList.remove('active');
             
             // Скрываем информацию о сохранении
-            savePathInfo.classList.remove('active');
+            saveInfo.classList.remove('active');
             
             applyWatermarkBtn.disabled = true;
             downloadResultBtn.disabled = true;
-            saveOptions.classList.add('hidden');
             
             // Сброс настроек
             watermarkText.value = '@TgPosted';
