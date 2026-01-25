@@ -7,7 +7,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Весь CSS остаётся без изменений из предыдущего кода */
         * {
             margin: 0;
             padding: 0;
@@ -204,6 +203,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             object-fit: contain;
             background-color: #f8f9fa;
+            cursor: pointer;
         }
 
         #videoPreview, #processedVideoPreview {
@@ -213,6 +213,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             background-color: #000;
             object-fit: contain;
+            cursor: pointer;
         }
 
         .video-container {
@@ -223,9 +224,27 @@
             border-radius: 10px;
             overflow: hidden;
             margin: 0 auto;
+            cursor: pointer;
         }
 
         .video-container video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .image-container {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .image-container img {
             width: 100%;
             height: auto;
             display: block;
@@ -792,6 +811,97 @@
             opacity: 0.7;
         }
 
+        /* Стили для полноэкранного режима */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fullscreen-overlay.active {
+            display: flex;
+        }
+
+        .fullscreen-media {
+            max-width: 95%;
+            max-height: 85%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .fullscreen-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .fullscreen-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 2001;
+        }
+
+        .fullscreen-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .fullscreen-btn {
+            background: rgba(0, 114, 255, 0.9);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(0, 114, 255, 1);
+            transform: translateY(-2px);
+        }
+
+        .fullscreen-btn-save {
+            background: rgba(76, 175, 80, 0.9);
+        }
+
+        .fullscreen-btn-save:hover {
+            background: rgba(76, 175, 80, 1);
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -845,6 +955,16 @@
             
             .motion-presets {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .fullscreen-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .fullscreen-btn {
+                width: 100%;
+                max-width: 300px;
             }
         }
     </style>
@@ -1100,15 +1220,17 @@
             <h2 class="card-title"><i class="fas fa-check-circle"></i> Результат</h2>
             
             <div class="preview-container">
-                <div class="preview-title">Обработанное медиа:</div>
+                <div class="preview-title">Обработанное медиа (нажмите для полноэкранного просмотра):</div>
                 
                 <!-- Контейнер для обработанного видео -->
                 <div class="video-container hidden" id="processedVideoContainer">
                     <video id="processedVideoPreview" controls></video>
                 </div>
                 
-                <!-- Обработанное изображение -->
-                <img id="processedMediaPreview" class="hidden">
+                <!-- Контейнер для обработанного изображения -->
+                <div class="image-container hidden" id="processedImageContainer">
+                    <img id="processedMediaPreview">
+                </div>
                 
                 <div id="noProcessedPreview" class="preview-title" style="text-align: center; width: 100%; padding: 40px 0; color: #999;">
                     <i class="fas fa-water" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
@@ -1116,23 +1238,11 @@
                 </div>
             </div>
 
-            <!-- Центрированная кнопка загрузки -->
+            <!-- Кнопка для открытия в полноэкранном режиме -->
             <div class="download-container">
-                <button class="btn btn-success" id="downloadResultBtn" disabled>
-                    <i class="fas fa-download"></i> Скачать результат
+                <button class="btn btn-success" id="openFullscreenBtn" disabled>
+                    <i class="fas fa-expand"></i> Открыть во весь экран
                 </button>
-            </div>
-
-            <div id="downloadLinkContainer" class="hidden" style="text-align: center; margin-top: 20px;">
-                <a id="downloadLink" target="_blank" style="color: #0072ff; text-decoration: none; font-size: 16px;">
-                    <i class="fas fa-external-link-alt"></i> Ссылка для скачивания
-                </a>
-                <div id="shareLinkContainer" style="margin-top: 10px;">
-                    <input type="text" id="shareLinkInput" readonly style="width: 100%; max-width: 400px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8f9fa;">
-                    <button id="copyLinkBtn" class="btn btn-small" style="margin-top: 10px;">
-                        <i class="fas fa-copy"></i> Копировать ссылку
-                    </button>
-                </div>
             </div>
 
             <div class="navigation-buttons">
@@ -1146,8 +1256,22 @@
         </div>
 
         <div class="footer">
-            <p>Обработанные файлы сохраняются на сервере и доступны для скачивания по ссылке.</p>
-            <p style="margin-top: 10px;">Файлы автоматически удаляются через 24 часа.</p>
+            <p>Вся обработка происходит на вашем устройстве. Качество и FPS видео сохраняются.</p>
+            <p style="margin-top: 10px;">Для работы с Telegram: добавьте этот код в мини-приложение через BotFather</p>
+        </div>
+    </div>
+
+    <!-- Полноэкранный режим -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <button class="fullscreen-close" id="fullscreenClose">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="fullscreenImage" class="fullscreen-media hidden">
+        <video id="fullscreenVideo" class="fullscreen-media hidden" controls></video>
+        <div class="fullscreen-controls">
+            <button class="fullscreen-btn fullscreen-btn-save" id="fullscreenSaveBtn">
+                <i class="fas fa-download"></i> Сохранить на устройство
+            </button>
         </div>
     </div>
 
@@ -1177,6 +1301,7 @@
         const applyWatermarkBtn = document.getElementById('applyWatermarkBtn');
         const processNewBtn = document.getElementById('processNewBtn');
         const resetAllBtn = document.getElementById('resetAllBtn');
+        const openFullscreenBtn = document.getElementById('openFullscreenBtn');
         
         // Элементы для водяного знака (из Шага 1)
         const watermarkText = document.getElementById('watermarkText');
@@ -1223,12 +1348,15 @@
         const processedMediaPreview = document.getElementById('processedMediaPreview');
         const processedVideoPreview = document.getElementById('processedVideoPreview');
         const processedVideoContainer = document.getElementById('processedVideoContainer');
+        const processedImageContainer = document.getElementById('processedImageContainer');
         const noProcessedPreview = document.getElementById('noProcessedPreview');
-        const downloadResultBtn = document.getElementById('downloadResultBtn');
-        const downloadLinkContainer = document.getElementById('downloadLinkContainer');
-        const downloadLink = document.getElementById('downloadLink');
-        const shareLinkInput = document.getElementById('shareLinkInput');
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        
+        // Элементы для полноэкранного режима
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+        const fullscreenImage = document.getElementById('fullscreenImage');
+        const fullscreenVideo = document.getElementById('fullscreenVideo');
+        const fullscreenClose = document.getElementById('fullscreenClose');
+        const fullscreenSaveBtn = document.getElementById('fullscreenSaveBtn');
         
         // Элементы для сохраненных водяных знаков
         const savedWatermarksList = document.getElementById('savedWatermarksList');
@@ -1242,6 +1370,7 @@
         let currentStep = 1;
         let originalMedia = null;
         let processedMedia = null;
+        let processedMediaUrl = null;
         let watermarkType = 'text';
         let watermarkImage = null;
         let position = 'bottom-right';
@@ -1251,11 +1380,6 @@
         let originalFormat = '';
         let originalFileName = '';
         let savedWatermarks = [];
-        
-        // Новые переменные для хранения Blob и URL
-        let processedBlob = null;
-        let processedBlobUrl = null;
-        let uploadedFileUrl = null;
         
         // Цвета по умолчанию
         let textColor = '#FFFFFF';
@@ -1306,9 +1430,6 @@
             { name: 'Волнообразное', speed: 5, type: 'wave', amplitude: 60, frequency: 0.7 },
             { name: 'Восьмерка', speed: 6, type: 'figure8', amplitude: 80, frequency: 0.5 }
         ];
-        
-        // Серверный URL для загрузки файлов
-        const SERVER_URL = window.location.origin; // Текущий домен
         
         // Инициализация
         init();
@@ -1382,11 +1503,28 @@
             // Сохранение водяного знака
             saveCurrentWatermarkBtn.addEventListener('click', saveCurrentWatermark);
             
-            // Скачивание результата
-            downloadResultBtn.addEventListener('click', uploadAndDownloadResult);
+            // Полноэкранный режим
+            openFullscreenBtn.addEventListener('click', openFullscreen);
+            fullscreenClose.addEventListener('click', closeFullscreen);
+            fullscreenSaveBtn.addEventListener('click', downloadResult);
             
-            // Копирование ссылки
-            copyLinkBtn.addEventListener('click', copyDownloadLink);
+            // Клик на обработанном медиа для открытия в полноэкранном режиме
+            processedImageContainer.addEventListener('click', openFullscreen);
+            processedVideoContainer.addEventListener('click', openFullscreen);
+            
+            // Закрытие полноэкранного режима по клику на оверлей
+            fullscreenOverlay.addEventListener('click', (e) => {
+                if (e.target === fullscreenOverlay) {
+                    closeFullscreen();
+                }
+            });
+            
+            // Закрытие полноэкранного режима по клавише Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && fullscreenOverlay.classList.contains('active')) {
+                    closeFullscreen();
+                }
+            });
         }
         
         function initColorPickers() {
@@ -2101,7 +2239,7 @@
                 
                 // Переходим к шагу 3
                 goToStep(3);
-                downloadResultBtn.disabled = false;
+                openFullscreenBtn.disabled = false;
                 
                 tg.HapticFeedback.impactOccurred('medium');
             } catch (error) {
@@ -2132,30 +2270,31 @@
                         mimeType = 'image/png';
                     }
                     
-                    // Получаем Blob из canvas
-                    canvas.toBlob(function(blob) {
-                        // Сохраняем Blob и создаем URL для предпросмотра
-                        processedBlob = blob;
-                        processedBlobUrl = URL.createObjectURL(blob);
-                        
-                        // Показываем результат
-                        processedMediaPreview.src = processedBlobUrl;
-                        processedMediaPreview.classList.remove('hidden');
-                        processedVideoContainer.classList.add('hidden');
-                        noProcessedPreview.classList.add('hidden');
-                        
-                        // Настраиваем размер изображения
-                        const aspectRatio = img.width / img.height;
-                        if (aspectRatio > 1.5) {
-                            processedMediaPreview.style.maxWidth = '100%';
-                            processedMediaPreview.style.maxHeight = '400px';
-                        } else {
-                            processedMediaPreview.style.maxWidth = 'auto';
-                            processedMediaPreview.style.maxHeight = '400px';
-                        }
-                        
-                        resolve();
-                    }, mimeType);
+                    try {
+                        processedMedia = canvas.toDataURL(mimeType);
+                        processedMediaUrl = canvas.toDataURL(mimeType);
+                    } catch (e) {
+                        processedMedia = canvas.toDataURL('image/png');
+                        processedMediaUrl = canvas.toDataURL('image/png');
+                    }
+                    
+                    // Показываем результат
+                    processedMediaPreview.src = processedMedia;
+                    processedImageContainer.classList.remove('hidden');
+                    processedVideoContainer.classList.add('hidden');
+                    noProcessedPreview.classList.add('hidden');
+                    
+                    // Настраиваем размер изображения
+                    const aspectRatio = img.width / img.height;
+                    if (aspectRatio > 1.5) {
+                        processedImageContainer.style.width = '100%';
+                        processedImageContainer.style.maxWidth = '500px';
+                    } else {
+                        processedImageContainer.style.width = 'auto';
+                        processedImageContainer.style.maxWidth = '300px';
+                    }
+                    
+                    resolve();
                 };
                 
                 img.src = originalMedia.url;
@@ -2485,14 +2624,15 @@
                     const blob = new Blob(chunks, { 
                         type: mimeType.split(';')[0]
                     });
+                    processedMediaUrl = URL.createObjectURL(blob);
+                    processedMedia = {
+                        url: processedMediaUrl,
+                        type: mimeType.split(';')[0]
+                    };
                     
-                    // Сохраняем Blob и создаем URL
-                    processedBlob = blob;
-                    processedBlobUrl = URL.createObjectURL(blob);
-                    
-                    processedVideoPreview.src = processedBlobUrl;
+                    processedVideoPreview.src = processedMediaUrl;
                     processedVideoContainer.classList.remove('hidden');
-                    processedMediaPreview.classList.add('hidden');
+                    processedImageContainer.classList.add('hidden');
                     noProcessedPreview.classList.add('hidden');
                     
                     // Настраиваем размер контейнера для обработанного видео
@@ -2539,103 +2679,72 @@
             });
         }
         
-        async function uploadAndDownloadResult() {
-            if (!processedBlob) {
-                alert('Нет файла для скачивания!');
-                return;
+        function openFullscreen() {
+            if (!processedMediaUrl) return;
+            
+            // Останавливаем предпросмотр движения, если оно было
+            stopMotionPreview();
+            
+            if (isVideo) {
+                fullscreenVideo.src = processedVideoPreview.src;
+                fullscreenVideo.classList.remove('hidden');
+                fullscreenImage.classList.add('hidden');
+            } else {
+                fullscreenImage.src = processedMediaPreview.src;
+                fullscreenImage.classList.remove('hidden');
+                fullscreenVideo.classList.add('hidden');
             }
             
+            fullscreenOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+        
+        function closeFullscreen() {
+            fullscreenOverlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+            
+            // Останавливаем видео, если оно воспроизводится
+            if (isVideo) {
+                fullscreenVideo.pause();
+            }
+            
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        
+        function downloadResult() {
+            if (!processedMediaUrl) return;
+            
+            const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
-            let filename;
-            let extension;
-            
             if (isVideo) {
-                extension = originalFormat.includes('mp4') ? 'mp4' : 'webm';
-                filename = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                link.href = processedMediaUrl;
+                let extension = 'webm';
+                if (processedMedia.type === 'video/mp4') {
+                    extension = 'mp4';
+                }
+                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
             } else {
+                link.href = processedMediaUrl;
+                let extension = 'png';
                 if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
                     extension = 'jpg';
                 } else if (originalFormat.includes('png')) {
                     extension = 'png';
                 } else if (originalFormat.includes('gif')) {
                     extension = 'gif';
-                } else {
-                    extension = 'png';
                 }
-                filename = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
             }
             
-            // Показываем процесс загрузки
-            showProcessing('Загрузка на сервер...');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             
-            try {
-                // Создаем FormData для отправки файла
-                const formData = new FormData();
-                formData.append('file', processedBlob, filename);
-                formData.append('filename', filename);
-                formData.append('isVideo', isVideo.toString());
-                
-                // Отправляем файл на сервер
-                const response = await fetch(`${SERVER_URL}/upload.php`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Сохраняем URL загруженного файла
-                    uploadedFileUrl = result.downloadUrl;
-                    
-                    // Показываем ссылку для скачивания
-                    downloadLink.href = uploadedFileUrl;
-                    downloadLink.textContent = 'Скачать обработанный файл';
-                    shareLinkInput.value = uploadedFileUrl;
-                    downloadLinkContainer.classList.remove('hidden');
-                    
-                    // Скрываем процесс загрузки
-                    hideProcessing();
-                    
-                    // Открываем ссылку для скачивания
-                    if (window.Telegram && Telegram.WebApp && typeof Telegram.WebApp.openLink === 'function') {
-                        Telegram.WebApp.openLink(uploadedFileUrl);
-                    } else {
-                        window.open(uploadedFileUrl, '_blank');
-                    }
-                    
-                    tg.HapticFeedback.impactOccurred('medium');
-                } else {
-                    hideProcessing();
-                    alert('Ошибка загрузки на сервер: ' + result.message);
-                }
-            } catch (error) {
-                hideProcessing();
-                console.error('Ошибка загрузки:', error);
-                alert('Не удалось загрузить файл на сервер. Попробуйте снова.');
-            }
-        }
-        
-        function copyDownloadLink() {
-            if (!uploadedFileUrl) return;
-            
-            shareLinkInput.select();
-            shareLinkInput.setSelectionRange(0, 99999);
-            
-            try {
-                navigator.clipboard.writeText(uploadedFileUrl).then(() => {
-                    showNotification('Ссылка скопирована в буфер обмена!');
-                    tg.HapticFeedback.impactOccurred('light');
-                }).catch(() => {
-                    // Fallback для старых браузеров
-                    document.execCommand('copy');
-                    showNotification('Ссылка скопирована в буфер обмена!');
-                    tg.HapticFeedback.impactOccurred('light');
-                });
-            } catch (err) {
-                console.error('Ошибка копирования:', err);
-            }
+            tg.HapticFeedback.impactOccurred('medium');
         }
         
         function resetAll() {
@@ -2646,12 +2755,7 @@
             // Сброс состояния
             originalMedia = null;
             processedMedia = null;
-            processedBlob = null;
-            if (processedBlobUrl && processedBlobUrl.startsWith('blob:')) {
-                URL.revokeObjectURL(processedBlobUrl);
-            }
-            processedBlobUrl = null;
-            uploadedFileUrl = null;
+            processedMediaUrl = null;
             watermarkImage = null;
             videoFrames = [];
             
@@ -2662,17 +2766,16 @@
             changeMediaBtn.classList.add('hidden');
             mediaInfo.classList.add('hidden');
             
-            processedMediaPreview.classList.add('hidden');
+            processedImageContainer.classList.add('hidden');
             processedVideoContainer.classList.add('hidden');
             noProcessedPreview.classList.remove('hidden');
-            downloadLinkContainer.classList.add('hidden');
             
             watermarkImagePreview.classList.add('hidden');
             watermarkImageInput.value = '';
             fileInput.value = '';
             
             applyWatermarkBtn.disabled = true;
-            downloadResultBtn.disabled = true;
+            openFullscreenBtn.disabled = true;
             
             // Сброс настроек
             watermarkText.value = '@TgPosted';
@@ -2711,6 +2814,11 @@
             document.querySelectorAll('.saved-watermark-item').forEach(item => {
                 item.classList.remove('active');
             });
+            
+            // Закрываем полноэкранный режим, если он открыт
+            if (fullscreenOverlay.classList.contains('active')) {
+                closeFullscreen();
+            }
             
             tg.HapticFeedback.impactOccurred('light');
         }
