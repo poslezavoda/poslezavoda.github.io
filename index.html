@@ -7,6 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Весь CSS остаётся без изменений из предыдущего кода */
         * {
             margin: 0;
             padding: 0;
@@ -654,6 +655,143 @@
             border-color: #0072ff;
         }
 
+        /* Стили для выбора цвета */
+        .color-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .color-option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .color-option-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+            background: transparent;
+        }
+
+        .color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker::-webkit-color-swatch {
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .color-value {
+            font-size: 14px;
+            color: #666;
+            min-width: 80px;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .color-preset {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .color-preset:hover {
+            transform: scale(1.1);
+            border-color: #0072ff;
+        }
+
+        .color-preset.active {
+            border-color: #0072ff;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2);
+        }
+
+        /* Улучшенные настройки движения */
+        .motion-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .motion-presets {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .motion-preset {
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .motion-preset:hover {
+            border-color: #0072ff;
+            transform: translateY(-2px);
+        }
+
+        .motion-preset.active {
+            background: rgba(0, 114, 255, 0.1);
+            border-color: #0072ff;
+            color: #0072ff;
+        }
+
+        .motion-preview {
+            width: 100%;
+            height: 80px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+
+        .motion-preview-watermark {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #0072ff;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -699,6 +837,14 @@
             .saved-watermark-item {
                 min-width: 100px;
                 padding: 8px;
+            }
+            
+            .color-presets {
+                justify-content: center;
+            }
+            
+            .motion-presets {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -760,6 +906,35 @@
                 <div class="control-group" id="textWatermarkControl">
                     <label for="watermarkText">Текст водяного знака:</label>
                     <input type="text" id="watermarkText" placeholder="Например: @ваш_канал" value="@TgPosted">
+                    
+                    <!-- Выбор цвета текста -->
+                    <div class="color-options">
+                        <div class="color-option-group">
+                            <div class="color-option-label">
+                                <span>Цвет текста:</span>
+                                <span class="color-value" id="textColorValue">#FFFFFF</span>
+                            </div>
+                            <div class="color-picker-container">
+                                <input type="color" id="textColorPicker" class="color-picker" value="#FFFFFF">
+                                <div class="color-presets" id="textColorPresets">
+                                    <!-- Цвета будут добавлены через JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="color-option-group">
+                            <div class="color-option-label">
+                                <span>Цвет обводки:</span>
+                                <span class="color-value" id="strokeColorValue">#000000</span>
+                            </div>
+                            <div class="color-picker-container">
+                                <input type="color" id="strokeColorPicker" class="color-picker" value="#000000">
+                                <div class="color-presets" id="strokeColorPresets">
+                                    <!-- Цвета будут добавлены через JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="control-group hidden" id="imageWatermarkControl">
@@ -816,10 +991,11 @@
                     </div>
                 </div>
 
-                <div class="control-group hidden" id="videoOptions">
-                    <label>Опции для видео:</label>
+                <!-- Настройки движения водяного знака (всегда видны) -->
+                <div class="control-group motion-options">
+                    <label>Настройки движения для видео:</label>
                     <div class="toggle-switch">
-                        <span>Подвижная водяная марка (плавное движение)</span>
+                        <span>Подвижная водяная марка</span>
                         <label class="switch">
                             <input type="checkbox" id="movingWatermark">
                             <span class="slider"></span>
@@ -844,8 +1020,21 @@
                                     <option value="circular">Круговое</option>
                                     <option value="horizontal">Горизонтальное</option>
                                     <option value="vertical">Вертикальное</option>
+                                    <option value="diagonal">Диагональное</option>
+                                    <option value="spiral">Спиральное</option>
+                                    <option value="random">Случайное</option>
+                                    <option value="wave">Волнообразное</option>
+                                    <option value="figure8">Восьмерка</option>
                                 </select>
                             </div>
+                        </div>
+                        
+                        <div class="motion-presets" id="motionPresets">
+                            <!-- Пресеты движения будут добавлены через JavaScript -->
+                        </div>
+                        
+                        <div class="motion-preview" id="motionPreview">
+                            <div class="motion-preview-watermark" id="motionPreviewWatermark"></div>
                         </div>
                     </div>
                 </div>
@@ -934,6 +1123,18 @@
                 </button>
             </div>
 
+            <div id="downloadLinkContainer" class="hidden" style="text-align: center; margin-top: 20px;">
+                <a id="downloadLink" target="_blank" style="color: #0072ff; text-decoration: none; font-size: 16px;">
+                    <i class="fas fa-external-link-alt"></i> Ссылка для скачивания
+                </a>
+                <div id="shareLinkContainer" style="margin-top: 10px;">
+                    <input type="text" id="shareLinkInput" readonly style="width: 100%; max-width: 400px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8f9fa;">
+                    <button id="copyLinkBtn" class="btn btn-small" style="margin-top: 10px;">
+                        <i class="fas fa-copy"></i> Копировать ссылку
+                    </button>
+                </div>
+            </div>
+
             <div class="navigation-buttons">
                 <button class="btn btn-secondary" id="backToStep2">
                     <i class="fas fa-arrow-left"></i> Назад к загрузке
@@ -945,8 +1146,8 @@
         </div>
 
         <div class="footer">
-            <p>Вся обработка происходит на вашем устройстве. Качество и FPS видео сохраняются.</p>
-            <p style="margin-top: 10px;">Для работы с Telegram: добавьте этот код в мини-приложение через BotFather</p>
+            <p>Обработанные файлы сохраняются на сервере и доступны для скачивания по ссылке.</p>
+            <p style="margin-top: 10px;">Файлы автоматически удаляются через 24 часа.</p>
         </div>
     </div>
 
@@ -990,6 +1191,24 @@
         const textWatermarkControl = document.getElementById('textWatermarkControl');
         const imageWatermarkControl = document.getElementById('imageWatermarkControl');
         
+        // Элементы для цвета текста
+        const textColorPicker = document.getElementById('textColorPicker');
+        const textColorValue = document.getElementById('textColorValue');
+        const textColorPresets = document.getElementById('textColorPresets');
+        const strokeColorPicker = document.getElementById('strokeColorPicker');
+        const strokeColorValue = document.getElementById('strokeColorValue');
+        const strokeColorPresets = document.getElementById('strokeColorPresets');
+        
+        // Элементы для движения
+        const movingWatermark = document.getElementById('movingWatermark');
+        const motionSettings = document.getElementById('motionSettings');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const motionType = document.getElementById('motionType');
+        const motionPresets = document.getElementById('motionPresets');
+        const motionPreview = document.getElementById('motionPreview');
+        const motionPreviewWatermark = document.getElementById('motionPreviewWatermark');
+        
         // Элементы для загрузки медиа (из Шага 2)
         const fileInput = document.getElementById('fileInput');
         const uploadArea = document.getElementById('uploadArea');
@@ -1006,17 +1225,16 @@
         const processedVideoContainer = document.getElementById('processedVideoContainer');
         const noProcessedPreview = document.getElementById('noProcessedPreview');
         const downloadResultBtn = document.getElementById('downloadResultBtn');
+        const downloadLinkContainer = document.getElementById('downloadLinkContainer');
+        const downloadLink = document.getElementById('downloadLink');
+        const shareLinkInput = document.getElementById('shareLinkInput');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
         
         // Элементы для сохраненных водяных знаков
         const savedWatermarksList = document.getElementById('savedWatermarksList');
         const saveCurrentWatermarkBtn = document.getElementById('saveCurrentWatermarkBtn');
         
         // Дополнительные элементы
-        const movingWatermark = document.getElementById('movingWatermark');
-        const motionSettings = document.getElementById('motionSettings');
-        const speedSlider = document.getElementById('speedSlider');
-        const speedValue = document.getElementById('speedValue');
-        const motionType = document.getElementById('motionType');
         const processingOverlay = document.getElementById('processingOverlay');
         const processingText = document.getElementById('processingText');
         
@@ -1034,12 +1252,79 @@
         let originalFileName = '';
         let savedWatermarks = [];
         
+        // Новые переменные для хранения Blob и URL
+        let processedBlob = null;
+        let processedBlobUrl = null;
+        let uploadedFileUrl = null;
+        
+        // Цвета по умолчанию
+        let textColor = '#FFFFFF';
+        let strokeColor = '#000000';
+        
+        // Состояние водяного знака для движения
+        let watermarkState = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            videoWidth: 0,
+            videoHeight: 0,
+            speed: 1,
+            motionType: 'bounce',
+            time: 0,
+            amplitude: 100,
+            frequency: 0.5,
+            pathPoints: []
+        };
+        
+        // Анимация предпросмотра движения
+        let motionPreviewAnimation = null;
+        let motionPreviewStartTime = 0;
+        
+        // Предустановленные цвета
+        const colorPresets = {
+            textColors: [
+                '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF',
+                '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080',
+                '#008000', '#FFC0CB', '#A52A2A', '#808080', '#FFD700'
+            ],
+            strokeColors: [
+                '#000000', '#FFFFFF', '#333333', '#666666', '#999999',
+                '#CCCCCC', '#FF0000', '#00FF00', '#0000FF', '#FFA500'
+            ]
+        };
+        
+        // Пресеты движения
+        const motionPresetsData = [
+            { name: 'Медленное плавание', speed: 3, type: 'bounce', amplitude: 50, frequency: 0.3 },
+            { name: 'Быстрое кружение', speed: 8, type: 'circular', amplitude: 100, frequency: 1 },
+            { name: 'Плавное по горизонтали', speed: 4, type: 'horizontal', amplitude: 80, frequency: 0.4 },
+            { name: 'Плавное по вертикали', speed: 4, type: 'vertical', amplitude: 80, frequency: 0.4 },
+            { name: 'Диагональный дрейф', speed: 5, type: 'diagonal', amplitude: 70, frequency: 0.5 },
+            { name: 'Спиральный полет', speed: 6, type: 'spiral', amplitude: 120, frequency: 0.8 },
+            { name: 'Случайный патруль', speed: 7, type: 'random', amplitude: 90, frequency: 0.6 },
+            { name: 'Волнообразное', speed: 5, type: 'wave', amplitude: 60, frequency: 0.7 },
+            { name: 'Восьмерка', speed: 6, type: 'figure8', amplitude: 80, frequency: 0.5 }
+        ];
+        
+        // Серверный URL для загрузки файлов
+        const SERVER_URL = window.location.origin; // Текущий домен
+        
         // Инициализация
         init();
         
         function init() {
             // Загружаем сохраненные водяные знаки
             loadSavedWatermarks();
+            
+            // Инициализируем выбор цвета
+            initColorPickers();
+            
+            // Инициализируем пресеты движения
+            initMotionPresets();
+            
+            // Инициализируем предпросмотр движения
+            initMotionPreview();
             
             // Навигация по шагам
             nextToStep2Btn.addEventListener('click', () => goToStep(2));
@@ -1072,11 +1357,14 @@
                 });
             });
             
+            // Настройки движения
             movingWatermark.addEventListener('change', () => {
                 if (movingWatermark.checked) {
                     motionSettings.classList.add('active');
+                    startMotionPreview();
                 } else {
                     motionSettings.classList.remove('active');
+                    stopMotionPreview();
                 }
             });
             
@@ -1084,11 +1372,311 @@
                 speedValue.textContent = speedSlider.value;
             });
             
+            motionType.addEventListener('change', () => {
+                // Обновляем предпросмотр при изменении типа движения
+                if (movingWatermark.checked) {
+                    startMotionPreview();
+                }
+            });
+            
             // Сохранение водяного знака
             saveCurrentWatermarkBtn.addEventListener('click', saveCurrentWatermark);
             
             // Скачивание результата
-            downloadResultBtn.addEventListener('click', downloadResult);
+            downloadResultBtn.addEventListener('click', uploadAndDownloadResult);
+            
+            // Копирование ссылки
+            copyLinkBtn.addEventListener('click', copyDownloadLink);
+        }
+        
+        function initColorPickers() {
+            // Устанавливаем начальные значения
+            textColorPicker.value = textColor;
+            strokeColorPicker.value = strokeColor;
+            
+            // Обновляем отображаемые значения
+            updateColorValues();
+            
+            // Создаем пресеты цветов для текста
+            colorPresets.textColors.forEach(color => {
+                const preset = document.createElement('div');
+                preset.className = 'color-preset';
+                preset.style.backgroundColor = color;
+                preset.dataset.color = color;
+                preset.title = color;
+                
+                preset.addEventListener('click', () => {
+                    textColorPicker.value = color;
+                    textColor = color;
+                    updateColorValues();
+                    highlightPreset(preset, textColorPresets);
+                });
+                
+                textColorPresets.appendChild(preset);
+            });
+            
+            // Создаем пресеты цветов для обводки
+            colorPresets.strokeColors.forEach(color => {
+                const preset = document.createElement('div');
+                preset.className = 'color-preset';
+                preset.style.backgroundColor = color;
+                preset.dataset.color = color;
+                preset.title = color;
+                
+                preset.addEventListener('click', () => {
+                    strokeColorPicker.value = color;
+                    strokeColor = color;
+                    updateColorValues();
+                    highlightPreset(preset, strokeColorPresets);
+                });
+                
+                strokeColorPresets.appendChild(preset);
+            });
+            
+            // Обработчики для цветовых пикеров
+            textColorPicker.addEventListener('input', (e) => {
+                textColor = e.target.value;
+                updateColorValues();
+                highlightPresetByColor(textColor, textColorPresets);
+            });
+            
+            strokeColorPicker.addEventListener('input', (e) => {
+                strokeColor = e.target.value;
+                updateColorValues();
+                highlightPresetByColor(strokeColor, strokeColorPresets);
+            });
+            
+            // Выделяем пресеты по умолчанию
+            highlightPresetByColor(textColor, textColorPresets);
+            highlightPresetByColor(strokeColor, strokeColorPresets);
+        }
+        
+        function initMotionPresets() {
+            motionPresetsData.forEach((preset, index) => {
+                const presetElement = document.createElement('div');
+                presetElement.className = 'motion-preset';
+                presetElement.dataset.index = index;
+                presetElement.textContent = preset.name;
+                
+                presetElement.addEventListener('click', () => {
+                    // Устанавливаем значения пресета
+                    speedSlider.value = preset.speed;
+                    speedValue.textContent = preset.speed;
+                    motionType.value = preset.type;
+                    
+                    // Активируем подвижную водяную марку, если еще не активирована
+                    if (!movingWatermark.checked) {
+                        movingWatermark.checked = true;
+                        motionSettings.classList.add('active');
+                        startMotionPreview();
+                    }
+                    
+                    // Выделяем выбранный пресет
+                    document.querySelectorAll('.motion-preset').forEach(p => {
+                        p.classList.remove('active');
+                    });
+                    presetElement.classList.add('active');
+                    
+                    // Обновляем предпросмотр
+                    startMotionPreview();
+                    
+                    tg.HapticFeedback.impactOccurred('light');
+                });
+                
+                motionPresets.appendChild(presetElement);
+            });
+        }
+        
+        function initMotionPreview() {
+            // Начальная позиция для предпросмотра
+            watermarkState.width = 30;
+            watermarkState.height = 30;
+            
+            // Обновляем размеры при изменении окна
+            window.addEventListener('resize', () => {
+                if (motionPreviewAnimation) {
+                    startMotionPreview();
+                }
+            });
+        }
+        
+        function startMotionPreview() {
+            stopMotionPreview(); // Останавливаем предыдущую анимацию
+            
+            motionPreviewStartTime = Date.now();
+            motionPreviewWatermark.style.width = '30px';
+            motionPreviewWatermark.style.height = '30px';
+            
+            function animate() {
+                const currentTime = Date.now();
+                const elapsed = (currentTime - motionPreviewStartTime) / 1000; // в секундах
+                
+                const previewWidth = motionPreview.clientWidth;
+                const previewHeight = motionPreview.clientHeight;
+                
+                // Обновляем позицию водяного знака
+                const pos = calculateMotionPosition(
+                    elapsed,
+                    previewWidth,
+                    previewHeight,
+                    30, // ширина водяного знака
+                    30, // высота водяного знака
+                    parseInt(speedSlider.value) / 5,
+                    motionType.value,
+                    100, // амплитуда
+                    0.5  // частота
+                );
+                
+                // Обновляем позицию водяного знака
+                motionPreviewWatermark.style.left = `${pos.x}px`;
+                motionPreviewWatermark.style.top = `${pos.y}px`;
+                
+                // Продолжаем анимацию
+                motionPreviewAnimation = requestAnimationFrame(animate);
+            }
+            
+            motionPreviewAnimation = requestAnimationFrame(animate);
+        }
+        
+        function calculateMotionPosition(time, width, height, wmWidth, wmHeight, speed, motionType, amplitude, frequency) {
+            const maxX = width - wmWidth;
+            const maxY = height - wmHeight;
+            
+            // Нормализованное время для периодических движений
+            const t = time * speed;
+            
+            switch(motionType) {
+                case 'bounce':
+                    // Плавное движение с отскоками от краев
+                    const bounceX = (Math.sin(t * frequency) * 0.5 + 0.5) * maxX;
+                    const bounceY = (Math.cos(t * frequency * 0.7) * 0.5 + 0.5) * maxY;
+                    return {
+                        x: Math.max(0, Math.min(maxX, bounceX)),
+                        y: Math.max(0, Math.min(maxY, bounceY))
+                    };
+                    
+                case 'circular':
+                    // Круговое движение по всей площади
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const radius = Math.min(maxX, maxY) * 0.4;
+                    const angle = t * frequency;
+                    
+                    return {
+                        x: centerX + Math.cos(angle) * radius - wmWidth / 2,
+                        y: centerY + Math.sin(angle) * radius - wmHeight / 2
+                    };
+                    
+                case 'horizontal':
+                    // Горизонтальное движение туда-обратно
+                    const hProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
+                    return {
+                        x: hProgress * maxX,
+                        y: height / 2 - wmHeight / 2
+                    };
+                    
+                case 'vertical':
+                    // Вертикальное движение туда-обратно
+                    const vProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
+                    return {
+                        x: width / 2 - wmWidth / 2,
+                        y: vProgress * maxY
+                    };
+                    
+                case 'diagonal':
+                    // Диагональное движение
+                    const diagProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
+                    return {
+                        x: diagProgress * maxX,
+                        y: diagProgress * maxY
+                    };
+                    
+                case 'spiral':
+                    // Спиральное движение от центра к краям
+                    const spiralCenterX = width / 2;
+                    const spiralCenterY = height / 2;
+                    const spiralAngle = t * frequency;
+                    const spiralRadius = (t % 10) / 10 * Math.min(maxX, maxY) * 0.5;
+                    
+                    return {
+                        x: spiralCenterX + Math.cos(spiralAngle) * spiralRadius - wmWidth / 2,
+                        y: spiralCenterY + Math.sin(spiralAngle) * spiralRadius - wmHeight / 2
+                    };
+                    
+                case 'random':
+                    // Псевдослучайное движение с плавными переходами
+                    const randomX = (Math.sin(t * 0.3) * 0.5 + 0.5) * maxX;
+                    const randomY = (Math.cos(t * 0.4) * 0.5 + 0.5) * maxY;
+                    return {
+                        x: Math.max(0, Math.min(maxX, randomX)),
+                        y: Math.max(0, Math.min(maxY, randomY))
+                    };
+                    
+                case 'wave':
+                    // Волнообразное движение
+                    const waveX = (t * 0.5) % maxX;
+                    const waveY = Math.sin(t * frequency) * amplitude + height / 2 - wmHeight / 2;
+                    
+                    return {
+                        x: waveX,
+                        y: Math.max(0, Math.min(maxY, waveY))
+                    };
+                    
+                case 'figure8':
+                    // Движение по траектории восьмерки (лемниската Бернулли)
+                    const scale = Math.min(width, height) * 0.3;
+                    const figure8X = Math.sin(t * frequency) * scale + width / 2 - wmWidth / 2;
+                    const figure8Y = Math.sin(t * frequency * 2) * scale * 0.5 + height / 2 - wmHeight / 2;
+                    
+                    return {
+                        x: Math.max(0, Math.min(maxX, figure8X)),
+                        y: Math.max(0, Math.min(maxY, figure8Y))
+                    };
+                    
+                default:
+                    return { x: 0, y: 0 };
+            }
+        }
+        
+        function stopMotionPreview() {
+            if (motionPreviewAnimation) {
+                cancelAnimationFrame(motionPreviewAnimation);
+                motionPreviewAnimation = null;
+            }
+        }
+        
+        function updateColorValues() {
+            textColorValue.textContent = textColor;
+            strokeColorValue.textContent = strokeColor;
+        }
+        
+        function highlightPreset(presetElement, container) {
+            // Снимаем выделение со всех пресетов в контейнере
+            container.querySelectorAll('.color-preset').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            // Выделяем выбранный пресет
+            presetElement.classList.add('active');
+        }
+        
+        function highlightPresetByColor(color, container) {
+            const presets = container.querySelectorAll('.color-preset');
+            let found = false;
+            
+            presets.forEach(preset => {
+                if (preset.dataset.color === color) {
+                    preset.classList.add('active');
+                    found = true;
+                } else {
+                    preset.classList.remove('active');
+                }
+            });
+            
+            // Если цвет не найден среди пресетов, снимаем выделение со всех
+            if (!found) {
+                presets.forEach(preset => preset.classList.remove('active'));
+            }
         }
         
         function loadSavedWatermarks() {
@@ -1118,8 +1706,16 @@
                 item.dataset.index = index;
                 
                 if (watermark.type === 'text') {
+                    // Для текстовых водяных знаков показываем цвет
+                    const colorBox = watermark.textColor ? 
+                        `<div style="width: 100%; height: 20px; background-color: ${watermark.textColor}; border-radius: 3px; margin-bottom: 5px;"></div>` : 
+                        '';
+                    
+                    const motionIcon = watermark.motionSettings ? '<i class="fas fa-running" style="color: #0072ff; margin-left: 5px;"></i>' : '';
+                    
                     item.innerHTML = `
-                        <div class="saved-watermark-text">${watermark.text}</div>
+                        ${colorBox}
+                        <div class="saved-watermark-text">${watermark.text} ${motionIcon}</div>
                         <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}%</div>
                         <div class="saved-watermark-actions">
                             <button class="delete-watermark-btn" data-index="${index}">
@@ -1128,9 +1724,11 @@
                         </div>
                     `;
                 } else {
+                    const motionIcon = watermark.motionSettings ? '<i class="fas fa-running" style="color: #0072ff; margin-left: 5px;"></i>' : '';
+                    
                     item.innerHTML = `
                         <img src="${watermark.imageData}" class="saved-watermark-preview" alt="Watermark">
-                        <div class="saved-watermark-text">Изображение</div>
+                        <div class="saved-watermark-text">Изображение ${motionIcon}</div>
                         <div style="font-size: 10px; color: #666; margin-top: 5px;">${watermark.opacity}%</div>
                         <div class="saved-watermark-actions">
                             <button class="delete-watermark-btn" data-index="${index}">
@@ -1178,6 +1776,19 @@
             // Загружаем данные водяного знака
             if (watermark.type === 'text') {
                 watermarkText.value = watermark.text;
+                
+                // Устанавливаем цвета, если они есть
+                if (watermark.textColor) {
+                    textColor = watermark.textColor;
+                    textColorPicker.value = textColor;
+                }
+                if (watermark.strokeColor) {
+                    strokeColor = watermark.strokeColor;
+                    strokeColorPicker.value = strokeColor;
+                }
+                updateColorValues();
+                highlightPresetByColor(textColor, textColorPresets);
+                highlightPresetByColor(strokeColor, strokeColorPresets);
             } else {
                 watermarkImage = new Image();
                 watermarkImage.src = watermark.imageData;
@@ -1185,6 +1796,22 @@
                     watermarkImagePreview.src = watermark.imageData;
                     watermarkImagePreview.classList.remove('hidden');
                 };
+            }
+            
+            // Устанавливаем настройки движения, если они есть
+            if (watermark.motionSettings) {
+                movingWatermark.checked = true;
+                motionSettings.classList.add('active');
+                speedSlider.value = watermark.motionSettings.speed;
+                speedValue.textContent = watermark.motionSettings.speed;
+                motionType.value = watermark.motionSettings.motionType;
+                
+                // Запускаем предпросмотр движения
+                startMotionPreview();
+            } else {
+                movingWatermark.checked = false;
+                motionSettings.classList.remove('active');
+                stopMotionPreview();
             }
             
             // Подсвечиваем выбранный элемент
@@ -1212,12 +1839,23 @@
                     return;
                 }
                 watermarkData.text = text;
+                watermarkData.textColor = textColor;
+                watermarkData.strokeColor = strokeColor;
             } else {
                 if (!watermarkImage) {
                     alert('Загрузите изображение водяного знака');
                     return;
                 }
                 watermarkData.imageData = watermarkImage.src;
+            }
+            
+            // Сохраняем настройки движения, если они включены
+            if (movingWatermark.checked) {
+                watermarkData.motionSettings = {
+                    moving: true,
+                    speed: speedSlider.value,
+                    motionType: motionType.value
+                };
             }
             
             // Добавляем в массив сохраненных
@@ -1494,29 +2132,30 @@
                         mimeType = 'image/png';
                     }
                     
-                    try {
-                        processedMedia = canvas.toDataURL(mimeType);
-                    } catch (e) {
-                        processedMedia = canvas.toDataURL('image/png');
-                    }
-                    
-                    // Показываем результат
-                    processedMediaPreview.src = processedMedia;
-                    processedMediaPreview.classList.remove('hidden');
-                    processedVideoContainer.classList.add('hidden');
-                    noProcessedPreview.classList.add('hidden');
-                    
-                    // Настраиваем размер изображения
-                    const aspectRatio = img.width / img.height;
-                    if (aspectRatio > 1.5) {
-                        processedMediaPreview.style.maxWidth = '100%';
-                        processedMediaPreview.style.maxHeight = '400px';
-                    } else {
-                        processedMediaPreview.style.maxWidth = 'auto';
-                        processedMediaPreview.style.maxHeight = '400px';
-                    }
-                    
-                    resolve();
+                    // Получаем Blob из canvas
+                    canvas.toBlob(function(blob) {
+                        // Сохраняем Blob и создаем URL для предпросмотра
+                        processedBlob = blob;
+                        processedBlobUrl = URL.createObjectURL(blob);
+                        
+                        // Показываем результат
+                        processedMediaPreview.src = processedBlobUrl;
+                        processedMediaPreview.classList.remove('hidden');
+                        processedVideoContainer.classList.add('hidden');
+                        noProcessedPreview.classList.add('hidden');
+                        
+                        // Настраиваем размер изображения
+                        const aspectRatio = img.width / img.height;
+                        if (aspectRatio > 1.5) {
+                            processedMediaPreview.style.maxWidth = '100%';
+                            processedMediaPreview.style.maxHeight = '400px';
+                        } else {
+                            processedMediaPreview.style.maxWidth = 'auto';
+                            processedMediaPreview.style.maxHeight = '400px';
+                        }
+                        
+                        resolve();
+                    }, mimeType);
                 };
                 
                 img.src = originalMedia.url;
@@ -1539,6 +2178,9 @@
                     canvas.width = tempVideo.videoWidth;
                     canvas.height = tempVideo.videoHeight;
                     
+                    // Инициализируем состояние водяного знака
+                    initializeWatermarkState(canvas.width, canvas.height);
+                    
                     let fps = 30;
                     const totalFrames = Math.floor(videoDuration * fps);
                     let currentFrame = 0;
@@ -1551,7 +2193,14 @@
                         tempVideo.onseeked = function() {
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
                             ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
-                            applyWatermarkToCanvas(ctx, canvas.width, canvas.height);
+                            
+                            // Применяем водяной знак
+                            applyWatermarkToCanvasWithMotion(
+                                ctx, 
+                                canvas.width, 
+                                canvas.height, 
+                                currentFrame / totalFrames // прогресс от 0 до 1
+                            );
                             
                             videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
                             currentFrame++;
@@ -1573,10 +2222,49 @@
             });
         }
         
+        function initializeWatermarkState(videoWidth, videoHeight) {
+            // Вычисляем размер водяного знака
+            let watermarkWidth, watermarkHeight;
+            
+            if (watermarkType === 'text' && watermarkText.value.trim()) {
+                // Для текста создаем временный canvas для измерения
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                const fontSize = Math.min(videoWidth, videoHeight) * 0.05;
+                
+                tempCtx.font = `bold ${fontSize}px Arial`;
+                const text = watermarkText.value.trim();
+                const textMetrics = tempCtx.measureText(text);
+                
+                watermarkWidth = textMetrics.width + fontSize;
+                watermarkHeight = fontSize * 2;
+                
+                // Сохраняем размер шрифта для использования в отрисовке
+                watermarkState.fontSize = fontSize;
+            } else if (watermarkType === 'image' && watermarkImage) {
+                watermarkWidth = videoWidth * 0.2;
+                watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+            } else {
+                // Значения по умолчанию
+                watermarkWidth = videoWidth * 0.2;
+                watermarkHeight = videoHeight * 0.1;
+            }
+            
+            // Устанавливаем начальное состояние водяного знака
+            watermarkState.width = watermarkWidth;
+            watermarkState.height = watermarkHeight;
+            watermarkState.videoWidth = videoWidth;
+            watermarkState.videoHeight = videoHeight;
+            watermarkState.speed = parseInt(speedSlider.value) / 5;
+            watermarkState.motionType = motionType.value;
+            watermarkState.amplitude = 100;
+            watermarkState.frequency = 0.5;
+        }
+        
         function applyWatermarkToCanvas(ctx, width, height) {
             const opacity = parseInt(opacitySlider.value) / 100;
             
-            // Вычисляем позицию
+            // Для статичного водяного знака вычисляем позицию
             let x, y, watermarkWidth, watermarkHeight;
             
             if (watermarkType === 'text' && watermarkText.value.trim()) {
@@ -1588,75 +2276,179 @@
                 watermarkWidth = textMetrics.width + fontSize;
                 watermarkHeight = fontSize * 2;
                 
-                // Позиционируем текст
-                x = getPositionX(width, watermarkWidth);
-                y = getPositionY(height, watermarkHeight);
-                
-                // Рисуем текст
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                ctx.strokeText(text, x + watermarkWidth/2, y + watermarkHeight/2);
-                ctx.fillText(text, x + watermarkWidth/2, y + watermarkHeight/2);
-                
+                switch(position) {
+                    case 'top-left':
+                        x = 10;
+                        y = 10;
+                        break;
+                    case 'top-center':
+                        x = (width - watermarkWidth) / 2;
+                        y = 10;
+                        break;
+                    case 'top-right':
+                        x = width - watermarkWidth - 10;
+                        y = 10;
+                        break;
+                    case 'center-left':
+                        x = 10;
+                        y = (height - watermarkHeight) / 2;
+                        break;
+                    case 'center':
+                        x = (width - watermarkWidth) / 2;
+                        y = (height - watermarkHeight) / 2;
+                        break;
+                    case 'center-right':
+                        x = width - watermarkWidth - 10;
+                        y = (height - watermarkHeight) / 2;
+                        break;
+                    case 'bottom-left':
+                        x = 10;
+                        y = height - watermarkHeight - 10;
+                        break;
+                    case 'bottom-center':
+                        x = (width - watermarkWidth) / 2;
+                        y = height - watermarkHeight - 10;
+                        break;
+                    case 'bottom-right':
+                        x = width - watermarkWidth - 10;
+                        y = height - watermarkHeight - 10;
+                        break;
+                }
             } else if (watermarkType === 'image' && watermarkImage) {
                 watermarkWidth = width * 0.2;
                 watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
                 
-                x = getPositionX(width, watermarkWidth);
-                y = getPositionY(height, watermarkHeight);
+                switch(position) {
+                    case 'top-left':
+                        x = 10;
+                        y = 10;
+                        break;
+                    case 'top-center':
+                        x = (width - watermarkWidth) / 2;
+                        y = 10;
+                        break;
+                    case 'top-right':
+                        x = width - watermarkWidth - 10;
+                        y = 10;
+                        break;
+                    case 'center-left':
+                        x = 10;
+                        y = (height - watermarkHeight) / 2;
+                        break;
+                    case 'center':
+                        x = (width - watermarkWidth) / 2;
+                        y = (height - watermarkHeight) / 2;
+                        break;
+                    case 'center-right':
+                        x = width - watermarkWidth - 10;
+                        y = (height - watermarkHeight) / 2;
+                        break;
+                    case 'bottom-left':
+                        x = 10;
+                        y = height - watermarkHeight - 10;
+                        break;
+                    case 'bottom-center':
+                        x = (width - watermarkWidth) / 2;
+                        y = height - watermarkHeight - 10;
+                        break;
+                    case 'bottom-right':
+                        x = width - watermarkWidth - 10;
+                        y = height - watermarkHeight - 10;
+                        break;
+                }
+            }
+            
+            // Устанавливаем прозрачность
+            ctx.globalAlpha = opacity;
+            
+            if (watermarkType === 'text' && watermarkText.value.trim()) {
+                const text = watermarkText.value.trim();
+                const fontSize = Math.min(width, height) * 0.05;
+                ctx.font = `bold ${fontSize}px Arial`;
                 
-                ctx.globalAlpha = opacity;
+                // Рисуем текст с обводкой и заливкой
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = textColor;
+                ctx.lineWidth = 2;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Вычисляем центр для текста
+                const centerX = x + (watermarkWidth / 2);
+                const centerY = y + (watermarkHeight / 2);
+                
+                ctx.strokeText(text, centerX, centerY);
+                ctx.fillText(text, centerX, centerY);
+                
+            } else if (watermarkType === 'image' && watermarkImage) {
+                // Водяная марка из изображения
                 ctx.drawImage(watermarkImage, x, y, watermarkWidth, watermarkHeight);
             }
             
+            // Сбрасываем прозрачность
             ctx.globalAlpha = 1.0;
         }
         
-        function getPositionX(canvasWidth, watermarkWidth) {
-            const padding = 10;
+        function applyWatermarkToCanvasWithMotion(ctx, width, height, progress) {
+            const opacity = parseInt(opacitySlider.value) / 100;
             
-            switch(position) {
-                case 'top-left':
-                case 'center-left':
-                case 'bottom-left':
-                    return padding;
-                case 'top-center':
-                case 'center':
-                case 'bottom-center':
-                    return (canvasWidth - watermarkWidth) / 2;
-                case 'top-right':
-                case 'center-right':
-                case 'bottom-right':
-                    return canvasWidth - watermarkWidth - padding;
-                default:
-                    return padding;
+            // Если движение не включено, используем статичную позицию
+            if (!movingWatermark.checked) {
+                applyWatermarkToCanvas(ctx, width, height);
+                return;
             }
-        }
-        
-        function getPositionY(canvasHeight, watermarkHeight) {
-            const padding = 10;
             
-            switch(position) {
-                case 'top-left':
-                case 'top-center':
-                case 'top-right':
-                    return padding;
-                case 'center-left':
-                case 'center':
-                case 'center-right':
-                    return (canvasHeight - watermarkHeight) / 2;
-                case 'bottom-left':
-                case 'bottom-center':
-                case 'bottom-right':
-                    return canvasHeight - watermarkHeight - padding;
-                default:
-                    return padding;
+            // Вычисляем позицию на основе прогресса видео
+            const time = progress * 60; // Преобразуем прогресс в "виртуальное время"
+            const pos = calculateMotionPosition(
+                time,
+                width,
+                height,
+                watermarkState.width,
+                watermarkState.height,
+                watermarkState.speed,
+                watermarkState.motionType,
+                watermarkState.amplitude,
+                watermarkState.frequency
+            );
+            
+            let x = Math.max(0, Math.min(width - watermarkState.width, pos.x));
+            let y = Math.max(0, Math.min(height - watermarkState.height, pos.y));
+            
+            // Устанавливаем прозрачность
+            ctx.globalAlpha = opacity;
+            
+            if (watermarkType === 'text' && watermarkText.value.trim()) {
+                const text = watermarkText.value.trim();
+                
+                if (watermarkState.fontSize) {
+                    ctx.font = `bold ${watermarkState.fontSize}px Arial`;
+                } else {
+                    const fontSize = Math.min(width, height) * 0.05;
+                    ctx.font = `bold ${fontSize}px Arial`;
+                }
+                
+                // Рисуем текст с обводкой и заливкой
+                ctx.strokeStyle = strokeColor;
+                ctx.fillStyle = textColor;
+                ctx.lineWidth = 2;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Вычисляем центр для текста
+                const centerX = x + (watermarkState.width / 2);
+                const centerY = y + (watermarkState.height / 2);
+                
+                ctx.strokeText(text, centerX, centerY);
+                ctx.fillText(text, centerX, centerY);
+                
+            } else if (watermarkType === 'image' && watermarkImage) {
+                // Водяная марка из изображения
+                ctx.drawImage(watermarkImage, x, y, watermarkState.width, watermarkState.height);
             }
+            
+            // Сбрасываем прозрачность
+            ctx.globalAlpha = 1.0;
         }
         
         function createVideoFromFrames(fps) {
@@ -1693,13 +2485,12 @@
                     const blob = new Blob(chunks, { 
                         type: mimeType.split(';')[0]
                     });
-                    const url = URL.createObjectURL(blob);
-                    processedMedia = {
-                        url: url,
-                        type: mimeType.split(';')[0]
-                    };
                     
-                    processedVideoPreview.src = url;
+                    // Сохраняем Blob и создаем URL
+                    processedBlob = blob;
+                    processedBlobUrl = URL.createObjectURL(blob);
+                    
+                    processedVideoPreview.src = processedBlobUrl;
                     processedVideoContainer.classList.remove('hidden');
                     processedMediaPreview.classList.add('hidden');
                     noProcessedPreview.classList.add('hidden');
@@ -1748,38 +2539,103 @@
             });
         }
         
-        function downloadResult() {
-            if (!processedMedia) return;
+        async function uploadAndDownloadResult() {
+            if (!processedBlob) {
+                alert('Нет файла для скачивания!');
+                return;
+            }
             
-            const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
+            let filename;
+            let extension;
+            
             if (isVideo) {
-                link.href = processedMedia.url;
-                let extension = 'webm';
-                if (processedMedia.type === 'video/mp4') {
-                    extension = 'mp4';
-                }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                extension = originalFormat.includes('mp4') ? 'mp4' : 'webm';
+                filename = `TgPosted_${originalName}_${timestamp}.${extension}`;
             } else {
-                link.href = processedMedia;
-                let extension = 'png';
                 if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
                     extension = 'jpg';
                 } else if (originalFormat.includes('png')) {
                     extension = 'png';
                 } else if (originalFormat.includes('gif')) {
                     extension = 'gif';
+                } else {
+                    extension = 'png';
                 }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                filename = `TgPosted_${originalName}_${timestamp}.${extension}`;
             }
             
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Показываем процесс загрузки
+            showProcessing('Загрузка на сервер...');
             
-            tg.HapticFeedback.impactOccurred('medium');
+            try {
+                // Создаем FormData для отправки файла
+                const formData = new FormData();
+                formData.append('file', processedBlob, filename);
+                formData.append('filename', filename);
+                formData.append('isVideo', isVideo.toString());
+                
+                // Отправляем файл на сервер
+                const response = await fetch(`${SERVER_URL}/upload.php`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Сохраняем URL загруженного файла
+                    uploadedFileUrl = result.downloadUrl;
+                    
+                    // Показываем ссылку для скачивания
+                    downloadLink.href = uploadedFileUrl;
+                    downloadLink.textContent = 'Скачать обработанный файл';
+                    shareLinkInput.value = uploadedFileUrl;
+                    downloadLinkContainer.classList.remove('hidden');
+                    
+                    // Скрываем процесс загрузки
+                    hideProcessing();
+                    
+                    // Открываем ссылку для скачивания
+                    if (window.Telegram && Telegram.WebApp && typeof Telegram.WebApp.openLink === 'function') {
+                        Telegram.WebApp.openLink(uploadedFileUrl);
+                    } else {
+                        window.open(uploadedFileUrl, '_blank');
+                    }
+                    
+                    tg.HapticFeedback.impactOccurred('medium');
+                } else {
+                    hideProcessing();
+                    alert('Ошибка загрузки на сервер: ' + result.message);
+                }
+            } catch (error) {
+                hideProcessing();
+                console.error('Ошибка загрузки:', error);
+                alert('Не удалось загрузить файл на сервер. Попробуйте снова.');
+            }
+        }
+        
+        function copyDownloadLink() {
+            if (!uploadedFileUrl) return;
+            
+            shareLinkInput.select();
+            shareLinkInput.setSelectionRange(0, 99999);
+            
+            try {
+                navigator.clipboard.writeText(uploadedFileUrl).then(() => {
+                    showNotification('Ссылка скопирована в буфер обмена!');
+                    tg.HapticFeedback.impactOccurred('light');
+                }).catch(() => {
+                    // Fallback для старых браузеров
+                    document.execCommand('copy');
+                    showNotification('Ссылка скопирована в буфер обмена!');
+                    tg.HapticFeedback.impactOccurred('light');
+                });
+            } catch (err) {
+                console.error('Ошибка копирования:', err);
+            }
         }
         
         function resetAll() {
@@ -1790,6 +2646,12 @@
             // Сброс состояния
             originalMedia = null;
             processedMedia = null;
+            processedBlob = null;
+            if (processedBlobUrl && processedBlobUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(processedBlobUrl);
+            }
+            processedBlobUrl = null;
+            uploadedFileUrl = null;
             watermarkImage = null;
             videoFrames = [];
             
@@ -1803,6 +2665,7 @@
             processedMediaPreview.classList.add('hidden');
             processedVideoContainer.classList.add('hidden');
             noProcessedPreview.classList.remove('hidden');
+            downloadLinkContainer.classList.add('hidden');
             
             watermarkImagePreview.classList.add('hidden');
             watermarkImageInput.value = '';
@@ -1815,15 +2678,32 @@
             watermarkText.value = '@TgPosted';
             opacitySlider.value = 70;
             opacityValue.textContent = '70%';
+            
+            // Сброс настроек движения
             movingWatermark.checked = false;
             motionSettings.classList.remove('active');
             speedSlider.value = 5;
             speedValue.textContent = '5';
             motionType.value = 'bounce';
+            stopMotionPreview();
+            
+            // Сброс выбора пресетов движения
+            document.querySelectorAll('.motion-preset').forEach(p => {
+                p.classList.remove('active');
+            });
             
             positionButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelector('.position-btn[data-position="bottom-right"]').classList.add('active');
             position = 'bottom-right';
+            
+            // Сброс цветов
+            textColor = '#FFFFFF';
+            strokeColor = '#000000';
+            textColorPicker.value = textColor;
+            strokeColorPicker.value = strokeColor;
+            updateColorValues();
+            highlightPresetByColor(textColor, textColorPresets);
+            highlightPresetByColor(strokeColor, strokeColorPresets);
             
             setWatermarkType('text');
             
