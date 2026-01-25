@@ -791,65 +791,86 @@
             opacity: 0.7;
         }
 
-        /* Стили для модального окна инструкции */
-        .instruction-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+        /* Новые стили для прогресса обработки видео */
+        .video-processing-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            display: none;
+        }
+
+        .video-processing-container.active {
+            display: block;
+        }
+
+        .video-processing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .video-processing-title {
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .video-processing-percentage {
+            font-size: 16px;
+            color: #0072ff;
+            font-weight: bold;
+        }
+
+        .video-processing-progress {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .video-processing-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0072ff, #00c6ff);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .video-processing-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .video-processing-time {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .video-processing-cancel {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Стили для мобильного сохранения файлов */
+        .save-options {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            padding: 20px;
-        }
-
-        .instruction-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 400px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .instruction-title {
-            font-size: 22px;
-            margin-bottom: 20px;
-            text-align: center;
-            color: #333;
-        }
-
-        .instruction-section {
-            margin-bottom: 20px;
-        }
-
-        .instruction-section h4 {
-            color: #0072ff;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .instruction-list {
-            padding-left: 20px;
-            color: #555;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .instruction-list li {
-            margin-bottom: 8px;
-        }
-
-        .instruction-footer {
-            text-align: center;
+            gap: 10px;
             margin-top: 20px;
-            font-size: 12px;
-            color: #888;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         @media (max-width: 600px) {
@@ -905,15 +926,6 @@
             
             .motion-presets {
                 grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .instruction-content {
-                max-width: 90%;
-                padding: 16px;
-            }
-            
-            .instruction-list {
-                font-size: 13px;
             }
         }
     </style>
@@ -1154,6 +1166,29 @@
                 <div id="mediaInfo" class="media-info hidden"></div>
             </div>
 
+            <!-- Контейнер для прогресса обработки видео -->
+            <div class="video-processing-container" id="videoProcessingContainer">
+                <div class="video-processing-header">
+                    <div class="video-processing-title">
+                        <i class="fas fa-video"></i> Обработка видео
+                    </div>
+                    <div class="video-processing-percentage" id="videoProcessingPercentage">0%</div>
+                </div>
+                <div class="video-processing-progress">
+                    <div class="video-processing-progress-bar" id="videoProcessingProgressBar"></div>
+                </div>
+                <div class="video-processing-stats">
+                    <span>Обработано кадров: <span id="processedFrames">0</span> из <span id="totalFrames">0</span></span>
+                    <span id="processingSpeed">0 кадр/сек</span>
+                </div>
+                <div class="video-processing-time" id="videoProcessingTime">Осталось: расчет...</div>
+                <div class="video-processing-cancel">
+                    <button class="btn btn-secondary btn-small" id="cancelVideoProcessingBtn">
+                        <i class="fas fa-stop"></i> Отменить обработку
+                    </button>
+                </div>
+            </div>
+
             <div class="navigation-buttons">
                 <button class="btn btn-secondary" id="backToStep1">
                     <i class="fas fa-arrow-left"></i> Назад
@@ -1185,19 +1220,21 @@
                 </div>
             </div>
 
-            <!-- Кнопки действий -->
-            <div class="result-actions">
-                <div class="download-container">
-                    <button class="btn btn-success" id="downloadResultBtn" disabled>
-                        <i class="fas fa-download"></i> Скачать результат
-                    </button>
-                </div>
-                
-                <div style="text-align: center; margin-top: 15px;">
-                    <button class="btn btn-secondary" id="showGalleryInstructionBtn">
-                        <i class="fas fa-images"></i> Как сохранить в галерею?
-                    </button>
-                </div>
+            <!-- Центрированная кнопка загрузки -->
+            <div class="download-container">
+                <button class="btn btn-success" id="downloadResultBtn" disabled>
+                    <i class="fas fa-download"></i> Скачать результат
+                </button>
+            </div>
+
+            <!-- Опции сохранения для мобильных устройств -->
+            <div class="save-options hidden" id="saveOptions">
+                <button class="btn btn-primary" id="saveToGalleryBtn">
+                    <i class="fas fa-save"></i> Сохранить в галерею
+                </button>
+                <button class="btn btn-secondary" id="shareFileBtn">
+                    <i class="fas fa-share"></i> Поделиться файлом
+                </button>
             </div>
 
             <div class="navigation-buttons">
@@ -1219,69 +1256,6 @@
     <div class="processing-overlay" id="processingOverlay">
         <div class="spinner"></div>
         <div class="processing-text" id="processingText">Обработка...</div>
-    </div>
-
-    <!-- Модальное окно с инструкцией для сохранения в галерею -->
-    <div class="instruction-modal hidden" id="instructionModal">
-        <div class="instruction-content">
-            <h3 class="instruction-title">📱 Как сохранить в галерею</h3>
-            
-            <div class="instruction-section">
-                <h4>📥 Сначала скачайте файл:</h4>
-                <ol class="instruction-list">
-                    <li>Нажмите кнопку "Скачать результат" выше</li>
-                    <li>Файл сохранится в папку "Загрузки" (Downloads) вашего телефона</li>
-                </ol>
-            </div>
-            
-            <div class="instruction-section">
-                <h4>🤖 Для Android:</h4>
-                <ol class="instruction-list">
-                    <li>Откройте приложение <strong>"Файлы"</strong> или <strong>"Проводник"</strong></li>
-                    <li>Найдите папку <strong>"Загрузки"</strong> (Downloads)</li>
-                    <li>Найдите скачанный файл (начинается с TgPosted_)</li>
-                    <li>Нажмите на три точки <strong>"⋮"</strong> рядом с файлом</li>
-                    <li>Выберите <strong>"Переместить"</strong> или <strong>"Копировать"</strong></li>
-                    <li>Перейдите в папку <strong>"DCIM"</strong> или <strong>"Pictures"</strong></li>
-                    <li>Нажмите <strong>"Вставить"</strong> или <strong>"Переместить сюда"</strong></li>
-                    <li>Теперь файл появится в галерее!</li>
-                </ol>
-            </div>
-            
-            <div class="instruction-section">
-                <h4>🍎 Для iPhone (iOS):</h4>
-                <ol class="instruction-list">
-                    <li>Откройте приложение <strong>"Файлы"</strong></li>
-                    <li>Нажмите <strong>"Обзор"</strong> → <strong>"На этом iPhone"</strong></li>
-                    <li>Найдите папку <strong>"Загрузки"</strong></li>
-                    <li>Найдите скачанный файл (начинается с TgPosted_)</li>
-                    <li>Нажмите на файл и удерживайте</li>
-                    <li>Выберите <strong>"Поделиться"</strong> (квадрат со стрелкой)</li>
-                    <li>Прокрутите вниз и нажмите <strong>"Сохранить изображение/видео"</strong></li>
-                    <li>Файл автоматически сохранится в приложение "Фото"</li>
-                </ol>
-            </div>
-            
-            <div class="instruction-section">
-                <h4>💡 Быстрый способ (Android):</h4>
-                <ol class="instruction-list">
-                    <li>Откройте приложение <strong>"Галерея"</strong> или <strong>"Фото"</strong></li>
-                    <li>Нажмите на три точки <strong>"⋮"</strong> в правом верхнем углу</li>
-                    <li>Выберите <strong>"Скрытые папки"</strong> или <strong>"Показать скрытые"</strong></li>
-                    <li>Найдите папку <strong>"Загрузки"</strong></li>
-                    <li>Найдите ваш файл и откройте его</li>
-                    <li>Нажмите <strong>"⋮"</strong> → <strong>"Добавить в альбом"</strong></li>
-                </ol>
-            </div>
-            
-            <div class="instruction-footer">
-                <p>После перемещения файла в галерею, вы можете удалить его из папки "Загрузки"</p>
-            </div>
-            
-            <button class="btn btn-primary" id="closeInstructionBtn" style="width: 100%; margin-top: 20px;">
-                <i class="fas fa-check"></i> Понятно, спасибо!
-            </button>
-        </div>
     </div>
 
     <script>
@@ -1347,21 +1321,31 @@
         const changeMediaBtn = document.getElementById('changeMediaBtn');
         const mediaInfo = document.getElementById('mediaInfo');
         
+        // Элементы для прогресса обработки видео
+        const videoProcessingContainer = document.getElementById('videoProcessingContainer');
+        const videoProcessingPercentage = document.getElementById('videoProcessingPercentage');
+        const videoProcessingProgressBar = document.getElementById('videoProcessingProgressBar');
+        const processedFrames = document.getElementById('processedFrames');
+        const totalFrames = document.getElementById('totalFrames');
+        const processingSpeed = document.getElementById('processingSpeed');
+        const videoProcessingTime = document.getElementById('videoProcessingTime');
+        const cancelVideoProcessingBtn = document.getElementById('cancelVideoProcessingBtn');
+        
         // Элементы для результата (из Шага 3)
         const processedMediaPreview = document.getElementById('processedMediaPreview');
         const processedVideoPreview = document.getElementById('processedVideoPreview');
         const processedVideoContainer = document.getElementById('processedVideoContainer');
         const noProcessedPreview = document.getElementById('noProcessedPreview');
         const downloadResultBtn = document.getElementById('downloadResultBtn');
-        const showGalleryInstructionBtn = document.getElementById('showGalleryInstructionBtn');
+        
+        // Элементы для сохранения файлов
+        const saveOptions = document.getElementById('saveOptions');
+        const saveToGalleryBtn = document.getElementById('saveToGalleryBtn');
+        const shareFileBtn = document.getElementById('shareFileBtn');
         
         // Элементы для сохраненных водяных знаков
         const savedWatermarksList = document.getElementById('savedWatermarksList');
         const saveCurrentWatermarkBtn = document.getElementById('saveCurrentWatermarkBtn');
-        
-        // Элементы для модального окна с инструкцией
-        const instructionModal = document.getElementById('instructionModal');
-        const closeInstructionBtn = document.getElementById('closeInstructionBtn');
         
         // Дополнительные элементы
         const processingOverlay = document.getElementById('processingOverlay');
@@ -1380,6 +1364,14 @@
         let originalFormat = '';
         let originalFileName = '';
         let savedWatermarks = [];
+        
+        // Переменные для обработки видео
+        let videoProcessingActive = false;
+        let videoProcessingStartTime = 0;
+        let lastUpdateTime = 0;
+        let framesProcessed = 0;
+        let totalVideoFrames = 0;
+        let currentMediaRecorder = null;
         
         // Цвета по умолчанию
         let textColor = '#FFFFFF';
@@ -1447,6 +1439,9 @@
             // Инициализируем предпросмотр движения
             initMotionPreview();
             
+            // Проверяем, мобильное ли устройство
+            checkMobileDevice();
+            
             // Навигация по шагам
             nextToStep2Btn.addEventListener('click', () => goToStep(2));
             backToStep1Btn.addEventListener('click', () => goToStep(1));
@@ -1500,17 +1495,26 @@
                 }
             });
             
+            // Обработка видео
+            cancelVideoProcessingBtn.addEventListener('click', cancelVideoProcessing);
+            
             // Сохранение водяного знака
             saveCurrentWatermarkBtn.addEventListener('click', saveCurrentWatermark);
             
-            // Скачивание результата
-            downloadResultBtn.addEventListener('click', downloadResult);
+            // Скачивание и сохранение результата
+            downloadResultBtn.addEventListener('click', handleDownload);
+            saveToGalleryBtn.addEventListener('click', saveToGallery);
+            shareFileBtn.addEventListener('click', shareFile);
+        }
+        
+        function checkMobileDevice() {
+            // Проверяем, является ли устройство мобильным
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
-            // Инструкция по сохранению в галерею
-            showGalleryInstructionBtn.addEventListener('click', showSaveToGalleryInstruction);
-            closeInstructionBtn.addEventListener('click', () => {
-                instructionModal.classList.add('hidden');
-            });
+            // Показываем опции сохранения для мобильных устройств
+            if (isMobile) {
+                saveOptions.classList.remove('hidden');
+            }
         }
         
         function initColorPickers() {
@@ -2011,11 +2015,6 @@
             }
         }
         
-        function showSaveToGalleryInstruction() {
-            instructionModal.classList.remove('hidden');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        
         function showNotification(message) {
             // Создаем временное уведомление
             const notification = document.createElement('div');
@@ -2215,17 +2214,67 @@
             processingOverlay.style.display = 'none';
         }
         
+        function updateVideoProcessingProgress(current, total, startTime) {
+            const percentage = Math.round((current / total) * 100);
+            videoProcessingPercentage.textContent = `${percentage}%`;
+            videoProcessingProgressBar.style.width = `${percentage}%`;
+            processedFrames.textContent = current;
+            totalFrames.textContent = total;
+            
+            // Рассчитываем скорость обработки
+            const currentTime = Date.now();
+            const elapsedTime = (currentTime - startTime) / 1000; // в секундах
+            const fps = current > 0 ? (current / elapsedTime).toFixed(1) : 0;
+            processingSpeed.textContent = `${fps} кадр/сек`;
+            
+            // Рассчитываем оставшееся время
+            if (current > 0 && elapsedTime > 0) {
+                const framesPerSecond = current / elapsedTime;
+                const remainingFrames = total - current;
+                const remainingTime = framesPerSecond > 0 ? remainingFrames / framesPerSecond : 0;
+                
+                if (remainingTime < 60) {
+                    videoProcessingTime.textContent = `Осталось: ${Math.round(remainingTime)} сек`;
+                } else if (remainingTime < 3600) {
+                    videoProcessingTime.textContent = `Осталось: ${Math.round(remainingTime / 60)} мин`;
+                } else {
+                    videoProcessingTime.textContent = `Осталось: ${Math.round(remainingTime / 3600)} час`;
+                }
+            }
+        }
+        
+        function cancelVideoProcessing() {
+            videoProcessingActive = false;
+            videoProcessingContainer.classList.remove('active');
+            
+            if (currentMediaRecorder && currentMediaRecorder.state === 'recording') {
+                currentMediaRecorder.stop();
+            }
+            
+            showNotification('Обработка отменена');
+            applyWatermarkBtn.disabled = false;
+        }
+        
         async function applyWatermark() {
             if (!originalMedia) return;
             
-            showProcessing('Наложение водяного знака...');
             applyWatermarkBtn.disabled = true;
             
             try {
                 if (isVideo) {
+                    // Показываем контейнер прогресса обработки видео
+                    videoProcessingContainer.classList.add('active');
+                    videoProcessingActive = true;
+                    videoProcessingStartTime = Date.now();
+                    
                     await processVideo();
+                    
+                    // Скрываем контейнер прогресса после завершения
+                    videoProcessingContainer.classList.remove('active');
                 } else {
+                    showProcessing('Наложение водяного знака...');
                     await processImage();
+                    hideProcessing();
                 }
                 
                 // Переходим к шагу 3
@@ -2236,8 +2285,10 @@
             } catch (error) {
                 console.error('Ошибка обработки:', error);
                 alert('Произошла ошибка при обработке. Попробуйте снова.');
+                
+                // Скрываем контейнер прогресса в случае ошибки
+                videoProcessingContainer.classList.remove('active');
             } finally {
-                hideProcessing();
                 applyWatermarkBtn.disabled = false;
             }
         }
@@ -2292,8 +2343,6 @@
         
         function processVideo() {
             return new Promise((resolve) => {
-                showProcessing('Обработка видео... Это может занять некоторое время');
-                
                 const tempVideo = document.createElement('video');
                 tempVideo.src = originalMedia.url;
                 tempVideo.muted = true;
@@ -2310,15 +2359,26 @@
                     initializeWatermarkState(canvas.width, canvas.height);
                     
                     let fps = 30;
-                    const totalFrames = Math.floor(videoDuration * fps);
-                    let currentFrame = 0;
+                    const totalFramesCount = Math.floor(videoDuration * fps);
+                    totalVideoFrames = totalFramesCount;
+                    framesProcessed = 0;
                     
                     videoFrames = [];
                     
                     function processFrame() {
-                        tempVideo.currentTime = currentFrame / fps;
+                        if (!videoProcessingActive) {
+                            rejectVideoProcessing();
+                            return;
+                        }
+                        
+                        tempVideo.currentTime = framesProcessed / fps;
                         
                         tempVideo.onseeked = function() {
+                            if (!videoProcessingActive) {
+                                rejectVideoProcessing();
+                                return;
+                            }
+                            
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
                             ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
                             
@@ -2327,18 +2387,21 @@
                                 ctx, 
                                 canvas.width, 
                                 canvas.height, 
-                                currentFrame / totalFrames // прогресс от 0 до 1
+                                framesProcessed / totalFramesCount // прогресс от 0 до 1
                             );
                             
                             videoFrames.push(canvas.toDataURL('image/jpeg', 1.0));
-                            currentFrame++;
+                            framesProcessed++;
                             
-                            processingText.textContent = `Обработка видео... ${Math.round((currentFrame / totalFrames) * 100)}%`;
+                            // Обновляем прогресс
+                            updateVideoProcessingProgress(framesProcessed, totalFramesCount, videoProcessingStartTime);
                             
-                            if (currentFrame < totalFrames) {
+                            if (framesProcessed < totalFramesCount) {
                                 setTimeout(processFrame, 0);
                             } else {
-                                createVideoFromFrames(fps).then(resolve);
+                                createVideoFromFrames(fps).then(resolve).catch(() => {
+                                    videoProcessingContainer.classList.remove('active');
+                                });
                             }
                         };
                     }
@@ -2347,6 +2410,12 @@
                 };
                 
                 tempVideo.load();
+                
+                function rejectVideoProcessing() {
+                    videoProcessingContainer.classList.remove('active');
+                    applyWatermarkBtn.disabled = false;
+                    throw new Error('Обработка отменена');
+                }
             });
         }
         
@@ -2581,8 +2650,6 @@
         
         function createVideoFromFrames(fps) {
             return new Promise((resolve) => {
-                showProcessing('Создание видео...');
-                
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 
@@ -2601,6 +2668,8 @@
                     videoBitsPerSecond: 5000000
                 });
                 
+                currentMediaRecorder = mediaRecorder;
+                
                 const chunks = [];
                 
                 mediaRecorder.ondataavailable = function(event) {
@@ -2616,7 +2685,8 @@
                     const url = URL.createObjectURL(blob);
                     processedMedia = {
                         url: url,
-                        type: mimeType.split(';')[0]
+                        type: mimeType.split(';')[0],
+                        blob: blob
                     };
                     
                     processedVideoPreview.src = url;
@@ -2638,6 +2708,7 @@
                         processedVideoContainer.style.maxWidth = '300px';
                     }
                     
+                    currentMediaRecorder = null;
                     resolve();
                 };
                 
@@ -2647,7 +2718,7 @@
                 const totalFrames = videoFrames.length;
                 
                 function drawNextFrame() {
-                    if (frameIndex >= totalFrames) {
+                    if (!videoProcessingActive || frameIndex >= totalFrames) {
                         mediaRecorder.stop();
                         return;
                     }
@@ -2668,7 +2739,28 @@
             });
         }
         
-        function downloadResult() {
+        function handleDownload() {
+            if (!processedMedia) return;
+            
+            // Для мобильных устройств используем API для сохранения
+            if (isMobileDevice()) {
+                showMobileSaveOptions();
+            } else {
+                // Для десктопов используем стандартное скачивание
+                downloadFile();
+            }
+        }
+        
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        function showMobileSaveOptions() {
+            // Показываем опции сохранения
+            saveOptions.classList.remove('hidden');
+        }
+        
+        function downloadFile() {
             if (!processedMedia) return;
             
             const link = document.createElement('a');
@@ -2699,12 +2791,157 @@
             link.click();
             document.body.removeChild(link);
             
-            // Показываем инструкцию после скачивания
-            setTimeout(() => {
-                showSaveToGalleryInstruction();
-            }, 500);
-            
             tg.HapticFeedback.impactOccurred('medium');
+        }
+        
+        function saveToGallery() {
+            if (!processedMedia) return;
+            
+            // Для мобильных устройств используем File System Access API
+            if ('showSaveFilePicker' in window) {
+                saveWithFilePicker();
+            } else {
+                // Fallback для старых браузеров
+                downloadFile();
+            }
+        }
+        
+        async function saveWithFilePicker() {
+            try {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+                
+                let suggestedName, acceptOptions;
+                
+                if (isVideo) {
+                    let extension = 'webm';
+                    if (processedMedia.type === 'video/mp4') {
+                        extension = 'mp4';
+                    }
+                    suggestedName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    acceptOptions = {
+                        'video/*': [`.${extension}`]
+                    };
+                } else {
+                    let extension = 'png';
+                    if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
+                        extension = 'jpg';
+                    } else if (originalFormat.includes('png')) {
+                        extension = 'png';
+                    } else if (originalFormat.includes('gif')) {
+                        extension = 'gif';
+                    }
+                    suggestedName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                    acceptOptions = {
+                        'image/*': [`.${extension}`]
+                    };
+                }
+                
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: suggestedName,
+                    types: [{
+                        description: 'Media File',
+                        accept: acceptOptions,
+                    }],
+                });
+                
+                // Создаем Blob для сохранения
+                let blob;
+                if (isVideo) {
+                    blob = processedMedia.blob;
+                } else {
+                    const data = processedMedia.split(',')[1];
+                    const mime = processedMedia.split(',')[0].split(':')[1].split(';')[0];
+                    blob = new Blob([Uint8Array.from(atob(data), c => c.charCodeAt(0))], { type: mime });
+                }
+                
+                // Записываем файл
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                
+                showNotification('Файл сохранен успешно!');
+                tg.HapticFeedback.impactOccurred('medium');
+                
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Ошибка сохранения:', err);
+                    // Fallback на стандартное скачивание
+                    downloadFile();
+                }
+            }
+        }
+        
+        function shareFile() {
+            if (!processedMedia) return;
+            
+            // Используем Web Share API если доступен
+            if (navigator.share) {
+                shareWithWebAPI();
+            } else {
+                // Fallback: копируем ссылку
+                copyToClipboard();
+            }
+        }
+        
+        async function shareWithWebAPI() {
+            try {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+                
+                // Создаем Blob для шаринга
+                let blob, fileName;
+                
+                if (isVideo) {
+                    blob = processedMedia.blob;
+                    let extension = 'webm';
+                    if (processedMedia.type === 'video/mp4') {
+                        extension = 'mp4';
+                    }
+                    fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                } else {
+                    const data = processedMedia.split(',')[1];
+                    const mime = processedMedia.split(',')[0].split(':')[1].split(';')[0];
+                    blob = new Blob([Uint8Array.from(atob(data), c => c.charCodeAt(0))], { type: mime });
+                    let extension = 'png';
+                    if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
+                        extension = 'jpg';
+                    } else if (originalFormat.includes('png')) {
+                        extension = 'png';
+                    } else if (originalFormat.includes('gif')) {
+                        extension = 'gif';
+                    }
+                    fileName = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                }
+                
+                // Создаем файл для шаринга
+                const file = new File([blob], fileName, { type: blob.type });
+                
+                await navigator.share({
+                    files: [file],
+                    title: 'Обработанный файл с водяным знаком',
+                    text: 'Посмотрите мой обработанный файл с водяным знаком!'
+                });
+                
+                tg.HapticFeedback.impactOccurred('medium');
+                
+            } catch (err) {
+                console.error('Ошибка шаринга:', err);
+                copyToClipboard();
+            }
+        }
+        
+        function copyToClipboard() {
+            // Создаем временную ссылку для копирования
+            const tempInput = document.createElement('input');
+            tempInput.value = processedMedia.url || processedMedia;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            showNotification('Ссылка скопирована в буфер обмена!');
+            tg.HapticFeedback.impactOccurred('light');
         }
         
         function resetAll() {
@@ -2717,6 +2954,7 @@
             processedMedia = null;
             watermarkImage = null;
             videoFrames = [];
+            videoProcessingActive = false;
             
             // Сброс UI
             mediaPreview.classList.add('hidden');
@@ -2733,8 +2971,12 @@
             watermarkImageInput.value = '';
             fileInput.value = '';
             
+            // Скрываем контейнер прогресса обработки видео
+            videoProcessingContainer.classList.remove('active');
+            
             applyWatermarkBtn.disabled = true;
             downloadResultBtn.disabled = true;
+            saveOptions.classList.add('hidden');
             
             // Сброс настроек
             watermarkText.value = '@TgPosted';
@@ -2773,9 +3015,6 @@
             document.querySelectorAll('.saved-watermark-item').forEach(item => {
                 item.classList.remove('active');
             });
-            
-            // Закрываем модальное окно инструкции, если открыто
-            instructionModal.classList.add('hidden');
             
             tg.HapticFeedback.impactOccurred('light');
         }
