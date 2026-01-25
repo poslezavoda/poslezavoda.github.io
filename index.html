@@ -2673,20 +2673,27 @@
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
+            // Создаем таймер для автоматического скрытия overlay через 5 секунд
+            const autoHideTimer = setTimeout(() => {
+                hideProcessing();
+                showNotification('Файл готов к скачиванию. Проверьте браузер.');
+            }, 5000);
+            
             if (isVideo) {
                 // Для видео
                 if (processedMedia.blob) {
                     // Если у нас уже есть blob, используем его
-                    openInExternalBrowser(processedMedia.blob, `TgPosted_${originalName}_${timestamp}.${processedMedia.type === 'video/mp4' ? 'mp4' : 'webm'}`);
+                    openInExternalBrowser(processedMedia.blob, `TgPosted_${originalName}_${timestamp}.${processedMedia.type === 'video/mp4' ? 'mp4' : 'webm'}`, autoHideTimer);
                 } else {
                     // Иначе загружаем blob из URL
                     fetch(processedMedia.url)
                         .then(response => response.blob())
                         .then(blob => {
-                            openInExternalBrowser(blob, `TgPosted_${originalName}_${timestamp}.${processedMedia.type === 'video/mp4' ? 'mp4' : 'webm'}`);
+                            openInExternalBrowser(blob, `TgPosted_${originalName}_${timestamp}.${processedMedia.type === 'video/mp4' ? 'mp4' : 'webm'}`, autoHideTimer);
                         })
                         .catch(error => {
                             console.error('Ошибка при скачивании видео:', error);
+                            clearTimeout(autoHideTimer);
                             hideProcessing();
                             showNotification('Ошибка при подготовке видео. Попробуйте снова.');
                         });
@@ -2708,10 +2715,11 @@
                 fetch(processedMedia)
                     .then(res => res.blob())
                     .then(blob => {
-                        openInExternalBrowser(blob, filename);
+                        openInExternalBrowser(blob, filename, autoHideTimer);
                     })
                     .catch(error => {
                         console.error('Ошибка при скачивании изображения:', error);
+                        clearTimeout(autoHideTimer);
                         hideProcessing();
                         showNotification('Ошибка при подготовке изображения. Попробуйте снова.');
                     });
@@ -2721,31 +2729,37 @@
         }
         
         // Функция для открытия файла во внешнем браузере
-        function openInExternalBrowser(blob, filename) {
+        function openInExternalBrowser(blob, filename, autoHideTimer) {
             // Создаем временный URL для blob
             const url = URL.createObjectURL(blob);
             
-            // Создаем временную ссылку
-            const tempLink = document.createElement('a');
-            tempLink.href = url;
-            tempLink.download = filename;
-            
-            // Используем метод Telegram Web App для открытия во внешнем браузере
+            // Пытаемся открыть во внешнем браузере
             if (tg && tg.openLink) {
                 // Открываем во внешнем браузере
                 tg.openLink(url);
+                
+                // Сразу скрываем overlay, так как tg.openLink не дает колбэка
+                clearTimeout(autoHideTimer);
+                hideProcessing();
+                showNotification('Файл открыт во внешнем браузере. Нажмите "Сохранить" для скачивания.');
             } else {
                 // Если метод недоступен, используем стандартный подход
+                const tempLink = document.createElement('a');
+                tempLink.href = url;
+                tempLink.download = filename;
                 document.body.appendChild(tempLink);
                 tempLink.click();
                 document.body.removeChild(tempLink);
+                
+                // Скрываем overlay сразу после клика
+                clearTimeout(autoHideTimer);
+                hideProcessing();
+                showNotification('Файл скачивается...');
             }
             
             // Очищаем URL через некоторое время
             setTimeout(() => {
                 URL.revokeObjectURL(url);
-                hideProcessing();
-                showNotification('Файл открыт во внешнем браузере. Нажмите "Сохранить" для скачивания.');
             }, 1000);
         }
         
