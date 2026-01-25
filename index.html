@@ -1235,6 +1235,10 @@
         let originalFileName = '';
         let savedWatermarks = [];
         
+        // Новые переменные для хранения Blob и URL
+        let processedBlob = null;
+        let processedBlobUrl = null;
+        
         // Цвета по умолчанию
         let textColor = '#FFFFFF';
         let strokeColor = '#000000';
@@ -2104,29 +2108,39 @@
                         mimeType = 'image/png';
                     }
                     
-                    try {
-                        processedMedia = canvas.toDataURL(mimeType);
-                    } catch (e) {
-                        processedMedia = canvas.toDataURL('image/png');
-                    }
-                    
-                    // Показываем результат
-                    processedMediaPreview.src = processedMedia;
-                    processedMediaPreview.classList.remove('hidden');
-                    processedVideoContainer.classList.add('hidden');
-                    noProcessedPreview.classList.add('hidden');
-                    
-                    // Настраиваем размер изображения
-                    const aspectRatio = img.width / img.height;
-                    if (aspectRatio > 1.5) {
-                        processedMediaPreview.style.maxWidth = '100%';
-                        processedMediaPreview.style.maxHeight = '400px';
-                    } else {
-                        processedMediaPreview.style.maxWidth = 'auto';
-                        processedMediaPreview.style.maxHeight = '400px';
-                    }
-                    
-                    resolve();
+                    // Получаем Blob из canvas
+                    canvas.toBlob(function(blob) {
+                        // Сохраняем Blob и создаем URL для предпросмотра
+                        processedBlob = blob;
+                        processedBlobUrl = URL.createObjectURL(blob);
+                        processedMedia = processedBlobUrl;
+                        
+                        // Также сохраняем dataURL для совместимости
+                        try {
+                            const dataURL = canvas.toDataURL(mimeType);
+                            processedMedia = dataURL;
+                        } catch (e) {
+                            console.log('Не удалось создать dataURL, используем Blob URL');
+                        }
+                        
+                        // Показываем результат
+                        processedMediaPreview.src = processedBlobUrl;
+                        processedMediaPreview.classList.remove('hidden');
+                        processedVideoContainer.classList.add('hidden');
+                        noProcessedPreview.classList.add('hidden');
+                        
+                        // Настраиваем размер изображения
+                        const aspectRatio = img.width / img.height;
+                        if (aspectRatio > 1.5) {
+                            processedMediaPreview.style.maxWidth = '100%';
+                            processedMediaPreview.style.maxHeight = '400px';
+                        } else {
+                            processedMediaPreview.style.maxWidth = 'auto';
+                            processedMediaPreview.style.maxHeight = '400px';
+                        }
+                        
+                        resolve();
+                    }, mimeType);
                 };
                 
                 img.src = originalMedia.url;
@@ -2456,13 +2470,17 @@
                     const blob = new Blob(chunks, { 
                         type: mimeType.split(';')[0]
                     });
-                    const url = URL.createObjectURL(blob);
+                    
+                    // Сохраняем Blob и создаем URL
+                    processedBlob = blob;
+                    processedBlobUrl = URL.createObjectURL(blob);
+                    
                     processedMedia = {
-                        url: url,
+                        url: processedBlobUrl,
                         type: mimeType.split(';')[0]
                     };
                     
-                    processedVideoPreview.src = url;
+                    processedVideoPreview.src = processedBlobUrl;
                     processedVideoContainer.classList.remove('hidden');
                     processedMediaPreview.classList.add('hidden');
                     noProcessedPreview.classList.add('hidden');
@@ -2512,21 +2530,24 @@
         }
         
         function downloadResult() {
-            if (!processedMedia) return;
+            if (!processedBlob && !processedBlobUrl) {
+                alert('Нет файла для скачивания!');
+                return;
+            }
             
-            const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const originalName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
             
+            let filename;
+            let blobToDownload = processedBlob;
+            
             if (isVideo) {
-                link.href = processedMedia.url;
                 let extension = 'webm';
-                if (processedMedia.type === 'video/mp4') {
+                if (originalFormat.includes('mp4')) {
                     extension = 'mp4';
                 }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                filename = `TgPosted_${originalName}_${timestamp}.${extension}`;
             } else {
-                link.href = processedMedia;
                 let extension = 'png';
                 if (originalFormat.includes('jpeg') || originalFormat.includes('jpg')) {
                     extension = 'jpg';
@@ -2535,12 +2556,34 @@
                 } else if (originalFormat.includes('gif')) {
                     extension = 'gif';
                 }
-                link.download = `TgPosted_${originalName}_${timestamp}.${extension}`;
+                filename = `TgPosted_${originalName}_${timestamp}.${extension}`;
             }
             
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Создаем URL для Blob
+            const url = processedBlobUrl || URL.createObjectURL(processedBlob);
+            
+            // Используем Telegram WebApp API для скачивания на мобильных устройствах
+            if (window.Telegram && Telegram.WebApp && typeof Telegram.WebApp.openLink === 'function') {
+                // Открываем ссылку во встроенном браузере Telegram
+                Telegram.WebApp.openLink(url);
+            } else {
+                // Фоллбэк для обычных браузеров
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            // Освобождаем URL через 10 секунд (если не используется Telegram WebApp)
+            if (!window.Telegram || !Telegram.WebApp || typeof Telegram.WebApp.openLink !== 'function') {
+                setTimeout(() => {
+                    if (url && url.startsWith('blob:')) {
+                        URL.revokeObjectURL(url);
+                    }
+                }, 10000);
+            }
             
             tg.HapticFeedback.impactOccurred('medium');
         }
@@ -2553,6 +2596,11 @@
             // Сброс состояния
             originalMedia = null;
             processedMedia = null;
+            processedBlob = null;
+            if (processedBlobUrl && processedBlobUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(processedBlobUrl);
+            }
+            processedBlobUrl = null;
             watermarkImage = null;
             videoFrames = [];
             
