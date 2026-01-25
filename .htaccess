@@ -1,0 +1,33 @@
+# Включение перезаписи URL
+RewriteEngine On
+
+# Разрешение CORS
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header set Access-Control-Allow-Headers "Content-Type"
+
+# Запрет листинга директорий
+Options -Indexes
+
+# Защита файлов конфигурации
+<FilesMatch "\.(json|php|htaccess)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Разрешение доступа к upload.php и download.php
+<Files "upload.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+<Files "download.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Настройки загрузки файлов
+php_value upload_max_filesize 100M
+php_value post_max_size 100M
+php_value max_execution_time 300
+php_value max_input_time 300
