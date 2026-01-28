@@ -791,104 +791,6 @@
             opacity: 0.7;
         }
 
-        /* Новые стили для отправки в Telegram */
-        .btn-purple {
-            background: linear-gradient(90deg, #8B00FF, #6A0DAD);
-            color: white;
-        }
-
-        .btn-purple:hover {
-            box-shadow: 0 6px 20px rgba(139, 0, 255, 0.2);
-        }
-
-        .btn-orange {
-            background: linear-gradient(90deg, #FF6B00, #FF8C00);
-            color: white;
-        }
-
-        .btn-orange:hover {
-            box-shadow: 0 6px 20px rgba(255, 107, 0, 0.2);
-        }
-
-        .send-bot-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 20px 0;
-            gap: 15px;
-        }
-
-        .send-bot-buttons {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .telegram-info {
-            background: #0088cc;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            max-width: 300px;
-            margin: 10px auto;
-        }
-
-        .sent-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4CAF50;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            z-index: 1001;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            animation: slideIn 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .sent-message.error {
-            background: #FF4444;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-
-        /* Стили для модального окна выбора чата */
-        .chat-selection-modal {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .chat-selection-modal h3 {
-            font-size: 20px;
-            margin-bottom: 15px;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Для мобильных устройств */
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -942,23 +844,6 @@
             
             .motion-presets {
                 grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .send-bot-buttons {
-                flex-direction: column;
-                width: 100%;
-            }
-            
-            .btn {
-                width: 100%;
-                max-width: 300px;
-            }
-            
-            .sent-message {
-                top: 10px;
-                right: 10px;
-                left: 10px;
-                text-align: center;
             }
         }
     </style>
@@ -1230,25 +1115,10 @@
                 </div>
             </div>
 
-            <!-- Кнопки для скачивания и отправки -->
-            <div class="send-bot-container">
-                <div class="send-bot-buttons">
-                    <button class="btn btn-success" id="downloadResultBtn" disabled>
-                        <i class="fas fa-download"></i> Скачать результат
-                    </button>
-                    <button class="btn btn-purple" id="sendToBotBtn" disabled>
-                        <i class="fab fa-telegram"></i> Отправить в Telegram
-                    </button>
-                </div>
-                
-                <div class="telegram-info" id="telegramInfo">
-                    <i class="fab fa-telegram"></i>
-                    <span>Файл будет отправлен в ваш чат с ботом</span>
-                </div>
-                
-                <!-- Кнопка для отправки в группу/канал -->
-                <button class="btn btn-orange" id="sendToChatBtn" disabled>
-                    <i class="fas fa-users"></i> Отправить в группу/канал
+            <!-- Центрированная кнопка загрузки -->
+            <div class="download-container">
+                <button class="btn btn-success" id="downloadResultBtn" disabled>
+                    <i class="fas fa-download"></i> Скачать результат
                 </button>
             </div>
 
@@ -1273,52 +1143,13 @@
         <div class="processing-text" id="processingText">Обработка...</div>
     </div>
 
-    <!-- Модальное окно для выбора чата -->
-    <div class="processing-overlay" id="chatSelectionOverlay" style="display: none;">
-        <div class="chat-selection-modal">
-            <h3><i class="fas fa-users"></i> Выберите чат</h3>
-            <p style="margin-bottom: 20px; color: #666;">Выберите куда отправить обработанный файл:</p>
-            
-            <div class="controls" style="margin-bottom: 20px;">
-                <div class="control-group">
-                    <label>Тип чата:</label>
-                    <select id="chatType" style="width: 100%;">
-                        <option value="private">Личный чат с ботом</option>
-                        <option value="group">Группа</option>
-                        <option value="channel">Канал</option>
-                    </select>
-                </div>
-                
-                <div class="control-group" id="chatIdGroup" style="display: none;">
-                    <label for="chatIdInput">ID чата/канала:</label>
-                    <input type="text" id="chatIdInput" placeholder="@username или -1001234567890">
-                    <small style="color: #666; font-size: 12px;">Для каналов используйте ID формата -1001234567890</small>
-                </div>
-            </div>
-            
-            <div class="navigation-buttons">
-                <button class="btn btn-secondary" id="cancelChatSelectBtn">
-                    Отмена
-                </button>
-                <button class="btn btn-primary" id="confirmSendBtn">
-                    Отправить
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
         // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
         
-        // === НАСТРОЙКИ БОТА ===
-        // ЗАМЕНИТЕ ЭТОТ ТОКЕН НА ТОКЕН ВАШЕГО БОТА!
-        const BOT_TOKEN = ''; // Замените на токен вашего бота
-        const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
-        
-        // === ЭЛЕМЕНТЫ DOM ===
+        // Элементы DOM для шагов
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const step3 = document.getElementById('step3');
@@ -1334,7 +1165,7 @@
         const processNewBtn = document.getElementById('processNewBtn');
         const resetAllBtn = document.getElementById('resetAllBtn');
         
-        // Элементы для водяного знака
+        // Элементы для водяного знака (из Шага 1)
         const watermarkText = document.getElementById('watermarkText');
         const watermarkImageInput = document.getElementById('watermarkImageInput');
         const watermarkUploadArea = document.getElementById('watermarkUploadArea');
@@ -1365,7 +1196,7 @@
         const motionPreview = document.getElementById('motionPreview');
         const motionPreviewWatermark = document.getElementById('motionPreviewWatermark');
         
-        // Элементы для загрузки медиа
+        // Элементы для загрузки медиа (из Шага 2)
         const fileInput = document.getElementById('fileInput');
         const uploadArea = document.getElementById('uploadArea');
         const mediaPreview = document.getElementById('mediaPreview');
@@ -1375,23 +1206,12 @@
         const changeMediaBtn = document.getElementById('changeMediaBtn');
         const mediaInfo = document.getElementById('mediaInfo');
         
-        // Элементы для результата
+        // Элементы для результата (из Шага 3)
         const processedMediaPreview = document.getElementById('processedMediaPreview');
         const processedVideoPreview = document.getElementById('processedVideoPreview');
         const processedVideoContainer = document.getElementById('processedVideoContainer');
         const noProcessedPreview = document.getElementById('noProcessedPreview');
         const downloadResultBtn = document.getElementById('downloadResultBtn');
-        
-        // === НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ ОТПРАВКИ ===
-        const sendToBotBtn = document.getElementById('sendToBotBtn');
-        const sendToChatBtn = document.getElementById('sendToChatBtn');
-        const telegramInfo = document.getElementById('telegramInfo');
-        const chatSelectionOverlay = document.getElementById('chatSelectionOverlay');
-        const chatType = document.getElementById('chatType');
-        const chatIdGroup = document.getElementById('chatIdGroup');
-        const chatIdInput = document.getElementById('chatIdInput');
-        const cancelChatSelectBtn = document.getElementById('cancelChatSelectBtn');
-        const confirmSendBtn = document.getElementById('confirmSendBtn');
         
         // Элементы для сохраненных водяных знаков
         const savedWatermarksList = document.getElementById('savedWatermarksList');
@@ -1539,210 +1359,8 @@
             
             // Скачивание результата
             downloadResultBtn.addEventListener('click', downloadResult);
-            
-            // === НОВЫЕ ОБРАБОТЧИКИ ДЛЯ ОТПРАВКИ ===
-            // Отправка боту
-            sendToBotBtn.addEventListener('click', () => sendToTelegram('private'));
-            
-            // Отправка в группу/канал
-            sendToChatBtn.addEventListener('click', showChatSelection);
-            
-            // Выбор чата
-            chatType.addEventListener('change', handleChatTypeChange);
-            cancelChatSelectBtn.addEventListener('click', hideChatSelection);
-            confirmSendBtn.addEventListener('click', () => {
-                const chatTypeValue = chatType.value;
-                const chatId = chatIdInput.value.trim();
-                sendToTelegram(chatTypeValue, chatId);
-            });
-            
-            // Проверяем токен бота
-            checkBotToken();
         }
         
-        // === НОВАЯ ФУНКЦИЯ: Проверка токена бота ===
-        function checkBotToken() {
-            if (BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
-                console.warn('⚠️ ВНИМАНИЕ: Замените BOT_TOKEN на реальный токен вашего бота!');
-                // Можно показать предупреждение пользователю
-                setTimeout(() => {
-                    showSentMessage('ВНИМАНИЕ: Настройте токен бота в коде приложения!', true);
-                }, 2000);
-            }
-        }
-        
-        // === НОВАЯ ФУНКЦИЯ: Отправка в Telegram ===
-        async function sendToTelegram(type = 'private', chatId = null) {
-            if (!processedMedia) {
-                showSentMessage('Сначала обработайте медиафайл', true);
-                return;
-            }
-            
-            if (BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
-                showSentMessage('Ошибка: Токен бота не настроен. Замените BOT_TOKEN в коде.', true);
-                return;
-            }
-            
-            showProcessing('Отправка в Telegram...');
-            
-            try {
-                let targetChatId;
-                
-                if (type === 'private') {
-                    // Получаем ID пользователя из WebApp
-                    targetChatId = tg.initDataUnsafe?.user?.id;
-                    if (!targetChatId) {
-                        throw new Error('Не удалось получить ID пользователя');
-                    }
-                } else {
-                    // Для группы/канала используем предоставленный ID
-                    targetChatId = chatId;
-                    if (!targetChatId) {
-                        throw new Error('Введите ID чата/канала');
-                    }
-                    
-                    // Проверяем формат ID
-                    if (type === 'channel' && !chatId.startsWith('-100')) {
-                        showSentMessage('Для каналов используйте ID формата -1001234567890', true);
-                        hideProcessing();
-                        return;
-                    }
-                }
-                
-                // Преобразуем медиа в Blob
-                let blob;
-                let fileName;
-                
-                if (isVideo) {
-                    // Для видео
-                    showProcessing('Подготовка видео для отправки...');
-                    const response = await fetch(processedMedia.url);
-                    blob = await response.blob();
-                    fileName = `TgPosted_${Date.now()}.mp4`;
-                } else {
-                    // Для изображения
-                    showProcessing('Подготовка изображения для отправки...');
-                    blob = dataURLtoBlob(processedMedia);
-                    fileName = `TgPosted_${Date.now()}.jpg`;
-                }
-                
-                // Проверяем размер файла
-                const fileSizeMB = blob.size / (1024 * 1024);
-                const maxSizeMB = isVideo ? 50 : 10; // 50MB для видео, 10MB для фото
-                
-                if (fileSizeMB > maxSizeMB) {
-                    throw new Error(`Файл слишком большой (${fileSizeMB.toFixed(1)}MB). Максимум: ${maxSizeMB}MB`);
-                }
-                
-                // Создаем FormData
-                const formData = new FormData();
-                formData.append('chat_id', targetChatId);
-                
-                if (isVideo) {
-                    formData.append('video', blob, fileName);
-                } else {
-                    formData.append('photo', blob, fileName);
-                }
-                
-                // Отправляем файл через Telegram Bot API
-                const method = isVideo ? 'sendVideo' : 'sendPhoto';
-                showProcessing(`Отправка ${isVideo ? 'видео' : 'фото'}...`);
-                
-                const response = await fetch(`${API_URL}/${method}`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.ok) {
-                    showSentMessage('✅ Файл успешно отправлен в Telegram!');
-                    
-                    // Закрываем WebApp через 2 секунды
-                    setTimeout(() => {
-                        tg.close();
-                    }, 2000);
-                } else {
-                    throw new Error(result.description || 'Ошибка отправки');
-                }
-                
-            } catch (error) {
-                console.error('Ошибка отправки:', error);
-                showSentMessage(`❌ Ошибка: ${error.message}`, true);
-            } finally {
-                hideProcessing();
-                hideChatSelection();
-            }
-        }
-        
-        // === НОВАЯ ФУНКЦИЯ: Преобразование DataURL в Blob ===
-        function dataURLtoBlob(dataurl) {
-            const arr = dataurl.split(',');
-            const mimeMatch = arr[0].match(/:(.*?);/);
-            const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            
-            while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            
-            return new Blob([u8arr], { type: mime });
-        }
-        
-        // === НОВАЯ ФУНКЦИЯ: Показать сообщение об отправке ===
-        function showSentMessage(message, isError = false) {
-            const existingMessage = document.querySelector('.sent-message');
-            if (existingMessage) {
-                existingMessage.remove();
-            }
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `sent-message ${isError ? 'error' : ''}`;
-            messageDiv.innerHTML = `
-                <i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
-                <span>${message}</span>
-            `;
-            
-            document.body.appendChild(messageDiv);
-            
-            // Автоматическое скрытие через 5 секунд
-            setTimeout(() => {
-                messageDiv.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    if (messageDiv.parentNode) {
-                        messageDiv.parentNode.removeChild(messageDiv);
-                    }
-                }, 300);
-            }, 5000);
-        }
-        
-        // === НОВАЯ ФУНКЦИЯ: Показать выбор чата ===
-        function showChatSelection() {
-            chatSelectionOverlay.style.display = 'flex';
-        }
-        
-        // === НОВАЯ ФУНКЦИЯ: Скрыть выбор чата ===
-        function hideChatSelection() {
-            chatSelectionOverlay.style.display = 'none';
-            chatIdInput.value = '';
-            chatIdGroup.style.display = 'none';
-            chatType.value = 'private';
-        }
-        
-        // === НОВАЯ ФУНКЦИЯ: Обработчик изменения типа чата ===
-        function handleChatTypeChange() {
-            if (chatType.value === 'private') {
-                chatIdGroup.style.display = 'none';
-                telegramInfo.style.display = 'flex';
-            } else {
-                chatIdGroup.style.display = 'block';
-                telegramInfo.style.display = 'none';
-            }
-        }
-        
-        // === ФУНКЦИИ ДЛЯ ЦВЕТОВ ===
         function initColorPickers() {
             // Устанавливаем начальные значения
             textColorPicker.value = textColor;
@@ -1805,6 +1423,200 @@
             highlightPresetByColor(strokeColor, strokeColorPresets);
         }
         
+        function initMotionPresets() {
+            motionPresetsData.forEach((preset, index) => {
+                const presetElement = document.createElement('div');
+                presetElement.className = 'motion-preset';
+                presetElement.dataset.index = index;
+                presetElement.textContent = preset.name;
+                
+                presetElement.addEventListener('click', () => {
+                    // Устанавливаем значения пресета
+                    speedSlider.value = preset.speed;
+                    speedValue.textContent = preset.speed;
+                    motionType.value = preset.type;
+                    
+                    // Активируем подвижную водяную марку, если еще не активирована
+                    if (!movingWatermark.checked) {
+                        movingWatermark.checked = true;
+                        motionSettings.classList.add('active');
+                        startMotionPreview();
+                    }
+                    
+                    // Выделяем выбранный пресет
+                    document.querySelectorAll('.motion-preset').forEach(p => {
+                        p.classList.remove('active');
+                    });
+                    presetElement.classList.add('active');
+                    
+                    // Обновляем предпросмотр
+                    startMotionPreview();
+                    
+                    tg.HapticFeedback.impactOccurred('light');
+                });
+                
+                motionPresets.appendChild(presetElement);
+            });
+        }
+        
+        function initMotionPreview() {
+            // Начальная позиция для предпросмотра
+            watermarkState.width = 30;
+            watermarkState.height = 30;
+            
+            // Обновляем размеры при изменении окна
+            window.addEventListener('resize', () => {
+                if (motionPreviewAnimation) {
+                    startMotionPreview();
+                }
+            });
+        }
+        
+        function startMotionPreview() {
+            stopMotionPreview(); // Останавливаем предыдущую анимацию
+            
+            motionPreviewStartTime = Date.now();
+            motionPreviewWatermark.style.width = '30px';
+            motionPreviewWatermark.style.height = '30px';
+            
+            function animate() {
+                const currentTime = Date.now();
+                const elapsed = (currentTime - motionPreviewStartTime) / 1000; // в секундах
+                
+                const previewWidth = motionPreview.clientWidth;
+                const previewHeight = motionPreview.clientHeight;
+                
+                // Обновляем позицию водяного знака
+                const pos = calculateMotionPosition(
+                    elapsed,
+                    previewWidth,
+                    previewHeight,
+                    30, // ширина водяного знака
+                    30, // высота водяного знака
+                    parseInt(speedSlider.value) / 5,
+                    motionType.value,
+                    100, // амплитуда
+                    0.5  // частота
+                );
+                
+                // Обновляем позицию водяного знака
+                motionPreviewWatermark.style.left = `${pos.x}px`;
+                motionPreviewWatermark.style.top = `${pos.y}px`;
+                
+                // Продолжаем анимацию
+                motionPreviewAnimation = requestAnimationFrame(animate);
+            }
+            
+            motionPreviewAnimation = requestAnimationFrame(animate);
+        }
+        
+        function calculateMotionPosition(time, width, height, wmWidth, wmHeight, speed, motionType, amplitude, frequency) {
+            const maxX = width - wmWidth;
+            const maxY = height - wmHeight;
+            
+            // Нормализованное время для периодических движений
+            const t = time * speed;
+            
+            switch(motionType) {
+                case 'bounce':
+                    // Плавное движение с отскоками от краев
+                    const bounceX = (Math.sin(t * frequency) * 0.5 + 0.5) * maxX;
+                    const bounceY = (Math.cos(t * frequency * 0.7) * 0.5 + 0.5) * maxY;
+                    return {
+                        x: Math.max(0, Math.min(maxX, bounceX)),
+                        y: Math.max(0, Math.min(maxY, bounceY))
+                    };
+                    
+                case 'circular':
+                    // Круговое движение по всей площади
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const radius = Math.min(maxX, maxY) * 0.4;
+                    const angle = t * frequency;
+                    
+                    return {
+                        x: centerX + Math.cos(angle) * radius - wmWidth / 2,
+                        y: centerY + Math.sin(angle) * radius - wmHeight / 2
+                    };
+                    
+                case 'horizontal':
+                    // Горизонтальное движение туда-обратно
+                    const hProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
+                    return {
+                        x: hProgress * maxX,
+                        y: height / 2 - wmHeight / 2
+                    };
+                    
+                case 'vertical':
+                    // Вертикальное движение туда-обратно
+                    const vProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
+                    return {
+                        x: width / 2 - wmWidth / 2,
+                        y: vProgress * maxY
+                    };
+                    
+                case 'diagonal':
+                    // Диагональное движение
+                    const diagProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
+                    return {
+                        x: diagProgress * maxX,
+                        y: diagProgress * maxY
+                    };
+                    
+                case 'spiral':
+                    // Спиральное движение от центра к краям
+                    const spiralCenterX = width / 2;
+                    const spiralCenterY = height / 2;
+                    const spiralAngle = t * frequency;
+                    const spiralRadius = (t % 10) / 10 * Math.min(maxX, maxY) * 0.5;
+                    
+                    return {
+                        x: spiralCenterX + Math.cos(spiralAngle) * spiralRadius - wmWidth / 2,
+                        y: spiralCenterY + Math.sin(spiralAngle) * spiralRadius - wmHeight / 2
+                    };
+                    
+                case 'random':
+                    // Псевдослучайное движение с плавными переходами
+                    const randomX = (Math.sin(t * 0.3) * 0.5 + 0.5) * maxX;
+                    const randomY = (Math.cos(t * 0.4) * 0.5 + 0.5) * maxY;
+                    return {
+                        x: Math.max(0, Math.min(maxX, randomX)),
+                        y: Math.max(0, Math.min(maxY, randomY))
+                    };
+                    
+                case 'wave':
+                    // Волнообразное движение
+                    const waveX = (t * 0.5) % maxX;
+                    const waveY = Math.sin(t * frequency) * amplitude + height / 2 - wmHeight / 2;
+                    
+                    return {
+                        x: waveX,
+                        y: Math.max(0, Math.min(maxY, waveY))
+                    };
+                    
+                case 'figure8':
+                    // Движение по траектории восьмерки (лемниската Бернулли)
+                    const scale = Math.min(width, height) * 0.3;
+                    const figure8X = Math.sin(t * frequency) * scale + width / 2 - wmWidth / 2;
+                    const figure8Y = Math.sin(t * frequency * 2) * scale * 0.5 + height / 2 - wmHeight / 2;
+                    
+                    return {
+                        x: Math.max(0, Math.min(maxX, figure8X)),
+                        y: Math.max(0, Math.min(maxY, figure8Y))
+                    };
+                    
+                default:
+                    return { x: 0, y: 0 };
+            }
+        }
+        
+        function stopMotionPreview() {
+            if (motionPreviewAnimation) {
+                cancelAnimationFrame(motionPreviewAnimation);
+                motionPreviewAnimation = null;
+            }
+        }
+        
         function updateColorValues() {
             textColorValue.textContent = textColor;
             strokeColorValue.textContent = strokeColor;
@@ -1839,7 +1651,6 @@
             }
         }
         
-        // === ФУНКЦИИ ДЛЯ СОХРАНЕННЫХ ВОДЯНЫХ ЗНАКОВ ===
         function loadSavedWatermarks() {
             const saved = localStorage.getItem('savedWatermarks');
             if (saved) {
@@ -2091,202 +1902,6 @@
             }
         }
         
-        // === ФУНКЦИИ ДЛЯ ДВИЖЕНИЯ ===
-        function initMotionPresets() {
-            motionPresetsData.forEach((preset, index) => {
-                const presetElement = document.createElement('div');
-                presetElement.className = 'motion-preset';
-                presetElement.dataset.index = index;
-                presetElement.textContent = preset.name;
-                
-                presetElement.addEventListener('click', () => {
-                    // Устанавливаем значения пресета
-                    speedSlider.value = preset.speed;
-                    speedValue.textContent = preset.speed;
-                    motionType.value = preset.type;
-                    
-                    // Активируем подвижную водяную марку, если еще не активирована
-                    if (!movingWatermark.checked) {
-                        movingWatermark.checked = true;
-                        motionSettings.classList.add('active');
-                        startMotionPreview();
-                    }
-                    
-                    // Выделяем выбранный пресет
-                    document.querySelectorAll('.motion-preset').forEach(p => {
-                        p.classList.remove('active');
-                    });
-                    presetElement.classList.add('active');
-                    
-                    // Обновляем предпросмотр
-                    startMotionPreview();
-                    
-                    tg.HapticFeedback.impactOccurred('light');
-                });
-                
-                motionPresets.appendChild(presetElement);
-            });
-        }
-        
-        function initMotionPreview() {
-            // Начальная позиция для предпросмотра
-            watermarkState.width = 30;
-            watermarkState.height = 30;
-            
-            // Обновляем размеры при изменении окна
-            window.addEventListener('resize', () => {
-                if (motionPreviewAnimation) {
-                    startMotionPreview();
-                }
-            });
-        }
-        
-        function startMotionPreview() {
-            stopMotionPreview(); // Останавливаем предыдущую анимацию
-            
-            motionPreviewStartTime = Date.now();
-            motionPreviewWatermark.style.width = '30px';
-            motionPreviewWatermark.style.height = '30px';
-            
-            function animate() {
-                const currentTime = Date.now();
-                const elapsed = (currentTime - motionPreviewStartTime) / 1000; // в секундах
-                
-                const previewWidth = motionPreview.clientWidth;
-                const previewHeight = motionPreview.clientHeight;
-                
-                // Обновляем позицию водяного знака
-                const pos = calculateMotionPosition(
-                    elapsed,
-                    previewWidth,
-                    previewHeight,
-                    30, // ширина водяного знака
-                    30, // высота водяного знака
-                    parseInt(speedSlider.value) / 5,
-                    motionType.value,
-                    100, // амплитуда
-                    0.5  // частота
-                );
-                
-                // Обновляем позицию водяного знака
-                motionPreviewWatermark.style.left = `${pos.x}px`;
-                motionPreviewWatermark.style.top = `${pos.y}px`;
-                
-                // Продолжаем анимацию
-                motionPreviewAnimation = requestAnimationFrame(animate);
-            }
-            
-            motionPreviewAnimation = requestAnimationFrame(animate);
-        }
-        
-        function calculateMotionPosition(time, width, height, wmWidth, wmHeight, speed, motionType, amplitude, frequency) {
-            const maxX = width - wmWidth;
-            const maxY = height - wmHeight;
-            
-            // Нормализованное время для периодических движений
-            const t = time * speed;
-            
-            switch(motionType) {
-                case 'bounce':
-                    // Плавное движение с отскоками от краев
-                    const bounceX = (Math.sin(t * frequency) * 0.5 + 0.5) * maxX;
-                    const bounceY = (Math.cos(t * frequency * 0.7) * 0.5 + 0.5) * maxY;
-                    return {
-                        x: Math.max(0, Math.min(maxX, bounceX)),
-                        y: Math.max(0, Math.min(maxY, bounceY))
-                    };
-                    
-                case 'circular':
-                    // Круговое движение по всей площади
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-                    const radius = Math.min(maxX, maxY) * 0.4;
-                    const angle = t * frequency;
-                    
-                    return {
-                        x: centerX + Math.cos(angle) * radius - wmWidth / 2,
-                        y: centerY + Math.sin(angle) * radius - wmHeight / 2
-                    };
-                    
-                case 'horizontal':
-                    // Горизонтальное движение туда-обратно
-                    const hProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
-                    return {
-                        x: hProgress * maxX,
-                        y: height / 2 - wmHeight / 2
-                    };
-                    
-                case 'vertical':
-                    // Вертикальное движение туда-обратно
-                    const vProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
-                    return {
-                        x: width / 2 - wmWidth / 2,
-                        y: vProgress * maxY
-                    };
-                    
-                case 'diagonal':
-                    // Диагональное движение
-                    const diagProgress = (Math.sin(t * frequency) * 0.5 + 0.5);
-                    return {
-                        x: diagProgress * maxX,
-                        y: diagProgress * maxY
-                    };
-                    
-                case 'spiral':
-                    // Спиральное движение от центра к краям
-                    const spiralCenterX = width / 2;
-                    const spiralCenterY = height / 2;
-                    const spiralAngle = t * frequency;
-                    const spiralRadius = (t % 10) / 10 * Math.min(maxX, maxY) * 0.5;
-                    
-                    return {
-                        x: spiralCenterX + Math.cos(spiralAngle) * spiralRadius - wmWidth / 2,
-                        y: spiralCenterY + Math.sin(spiralAngle) * spiralRadius - wmHeight / 2
-                    };
-                    
-                case 'random':
-                    // Псевдослучайное движение с плавными переходами
-                    const randomX = (Math.sin(t * 0.3) * 0.5 + 0.5) * maxX;
-                    const randomY = (Math.cos(t * 0.4) * 0.5 + 0.5) * maxY;
-                    return {
-                        x: Math.max(0, Math.min(maxX, randomX)),
-                        y: Math.max(0, Math.min(maxY, randomY))
-                    };
-                    
-                case 'wave':
-                    // Волнообразное движение
-                    const waveX = (t * 0.5) % maxX;
-                    const waveY = Math.sin(t * frequency) * amplitude + height / 2 - wmHeight / 2;
-                    
-                    return {
-                        x: waveX,
-                        y: Math.max(0, Math.min(maxY, waveY))
-                    };
-                    
-                case 'figure8':
-                    // Движение по траектории восьмерки (лемниската Бернулли)
-                    const scale = Math.min(width, height) * 0.3;
-                    const figure8X = Math.sin(t * frequency) * scale + width / 2 - wmWidth / 2;
-                    const figure8Y = Math.sin(t * frequency * 2) * scale * 0.5 + height / 2 - wmHeight / 2;
-                    
-                    return {
-                        x: Math.max(0, Math.min(maxX, figure8X)),
-                        y: Math.max(0, Math.min(maxY, figure8Y))
-                    };
-                    
-                default:
-                    return { x: 0, y: 0 };
-            }
-        }
-        
-        function stopMotionPreview() {
-            if (motionPreviewAnimation) {
-                cancelAnimationFrame(motionPreviewAnimation);
-                motionPreviewAnimation = null;
-            }
-        }
-        
-        // === ОСНОВНЫЕ ФУНКЦИИ ===
         function goToStep(step) {
             // Обновляем индикатор шагов
             [step1, step2, step3].forEach(s => s.classList.remove('active', 'completed'));
@@ -2459,8 +2074,6 @@
                 // Переходим к шагу 3
                 goToStep(3);
                 downloadResultBtn.disabled = false;
-                sendToBotBtn.disabled = false;
-                sendToChatBtn.disabled = false;
                 
                 tg.HapticFeedback.impactOccurred('medium');
             } catch (error) {
@@ -2960,8 +2573,6 @@
             
             applyWatermarkBtn.disabled = true;
             downloadResultBtn.disabled = true;
-            sendToBotBtn.disabled = true;
-            sendToChatBtn.disabled = true;
             
             // Сброс настроек
             watermarkText.value = '@TgPosted';
@@ -3001,13 +2612,8 @@
                 item.classList.remove('active');
             });
             
-            hideChatSelection();
-            
             tg.HapticFeedback.impactOccurred('light');
         }
     </script>
 </body>
 </html>
-
-
-
